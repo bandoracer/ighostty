@@ -205,6 +205,16 @@ final class TerminalSessionView: NSView,
         termView.fitToSize()
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        apply(appliedProfile, force: true)
+        if let controller = window?.windowController as? TerminalWindowController {
+            controller.applyChrome()
+        } else {
+            DropdownWindowController.shared.settingsDidChange()
+        }
+    }
+
     // MARK: Process lifecycle
 
     func start(initialDirectory: String?) {
@@ -306,7 +316,8 @@ final class TerminalSessionView: NSView,
             fontSize: Float(CGFloat(profile.fontSize) + fontDelta)
         )
 
-        let schemeBg = NSColor(profile.scheme.background)
+        let activeScheme = profile.activeColorScheme
+        let schemeBg = NSColor(activeScheme.background)
         layer?.backgroundColor = transparent ? NSColor.clear.cgColor : schemeBg.cgColor
         termView.layer?.backgroundColor = NSColor.clear.cgColor
 
@@ -338,20 +349,22 @@ final class TerminalSessionView: NSView,
     }
 
     private func ghosttyTheme(for profile: Profile) -> TerminalTheme {
-        let configuration = ghosttyColorConfiguration(for: profile)
-        return TerminalTheme(light: configuration, dark: configuration)
+        TerminalTheme(
+            light: ghosttyColorConfiguration(for: profile.lightScheme, profile: profile),
+            dark: ghosttyColorConfiguration(for: profile.darkScheme, profile: profile)
+        )
     }
 
-    private func ghosttyColorConfiguration(for profile: Profile) -> TerminalConfiguration {
+    private func ghosttyColorConfiguration(for scheme: ColorScheme, profile: Profile) -> TerminalConfiguration {
         TerminalConfiguration { builder in
-            builder.withBackground(profile.scheme.background.ghosttyHex)
-            builder.withForeground(profile.scheme.foreground.ghosttyHex)
-            builder.withCursorColor(profile.scheme.cursor.ghosttyHex)
-            builder.withCursorText(profile.scheme.cursorText.ghosttyHex)
-            builder.withSelectionBackground(profile.scheme.selection.ghosttyHex)
-            builder.withSelectionForeground(profile.scheme.foreground.ghosttyHex)
+            builder.withBackground(scheme.background.ghosttyHex)
+            builder.withForeground(scheme.foreground.ghosttyHex)
+            builder.withCursorColor(scheme.cursor.ghosttyHex)
+            builder.withCursorText(scheme.cursorText.ghosttyHex)
+            builder.withSelectionBackground(scheme.selection.ghosttyHex)
+            builder.withSelectionForeground(scheme.foreground.ghosttyHex)
             builder.withBackgroundOpacity(ghosttyBackgroundOpacity(for: profile))
-            for (index, color) in profile.scheme.ansi.enumerated() {
+            for (index, color) in scheme.ansi.enumerated() {
                 builder.withPalette(index, color: color.ghosttyHex)
             }
         }

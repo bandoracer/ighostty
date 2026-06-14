@@ -145,6 +145,17 @@ func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
 
 let appVersion = "1.0.0"
 
+func currentAppearanceVariant() -> AppearanceVariant {
+    switch SettingsStore.shared.settings.ui.theme {
+    case .light:
+        return .light
+    case .dark:
+        return .dark
+    case .system:
+        return NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .dark : .light
+    }
+}
+
 /// Background alpha for a profile, honoring the global View > Use Transparency
 /// toggle. iTerm2 stores transparency (0 = opaque); alpha = 1 - transparency.
 func effectiveOpacity(for profile: Profile) -> Double {

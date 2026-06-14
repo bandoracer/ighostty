@@ -16,7 +16,7 @@ struct ProfilesPane: View {
                     ForEach(store.settings.profiles) { profile in
                         HStack(spacing: 8) {
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(Color(nsColor: NSColor(profile.scheme.background)))
+                                .fill(Color(nsColor: NSColor(profile.activeColorScheme.background)))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 3)
                                         .strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5)
@@ -296,7 +296,7 @@ private struct ProfileTextTab: View {
             }
 
             Section("Preview") {
-                SchemePreview(scheme: profile.scheme, fontName: profile.fontName, fontSize: profile.fontSize)
+                SchemePairPreview(profile: profile)
             }
         }
         .formStyle(.grouped)
@@ -311,14 +311,25 @@ private struct ProfileColorsTab: View {
     @Binding var profile: Profile
     @EnvironmentObject var store: SettingsStore
     @State private var importError: String?
+    @State private var editingAppearance: AppearanceVariant = .dark
 
     var body: some View {
         Form {
-            Section("Scheme") {
-                Picker("Preset", selection: schemeSelection) {
-                    ForEach(pickerSchemes) { Text($0.name).tag($0.name) }
+            Section {
+                schemePicker(for: .light)
+                schemePicker(for: .dark)
+            } header: {
+                Text("Schemes")
+            } footer: {
+                Text("Match System swaps between these automatically. Manual Light or Dark uses the matching scheme.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Customize") {
+                Picker("Edit", selection: $editingAppearance) {
+                    ForEach(AppearanceVariant.allCases) { Text($0.label).tag($0) }
                 }
-                SchemePreview(scheme: profile.scheme, fontName: profile.fontName, fontSize: profile.fontSize)
+                .pickerStyle(.segmented)
                 Button("Import iTerm2 Scheme (.itermcolors)…") { importScheme() }
             }
 
@@ -343,20 +354,31 @@ private struct ProfileColorsTab: View {
         }
     }
 
-    private var pickerSchemes: [ColorScheme] {
-        var schemes = store.allSchemes
-        if !schemes.contains(where: { $0.name == profile.scheme.name }) {
-            schemes.append(profile.scheme)
+    private func schemePicker(for appearance: AppearanceVariant) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("\(appearance.label) mode", selection: schemeSelection(for: appearance)) {
+                ForEach(pickerSchemes(for: appearance)) { Text($0.name).tag($0.name) }
+            }
+            SchemePreview(scheme: profile.colorScheme(for: appearance), fontName: profile.fontName, fontSize: profile.fontSize)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func pickerSchemes(for appearance: AppearanceVariant) -> [ColorScheme] {
+        var schemes = store.allSchemes(for: appearance)
+        let current = profile.colorScheme(for: appearance)
+        if !schemes.contains(where: { $0.name == current.name }) {
+            schemes.append(current)
         }
         return schemes
     }
 
-    private var schemeSelection: Binding<String> {
+    private func schemeSelection(for appearance: AppearanceVariant) -> Binding<String> {
         Binding(
-            get: { profile.scheme.name },
+            get: { profile.colorScheme(for: appearance).name },
             set: { name in
-                if let found = store.allSchemes.first(where: { $0.name == name }) {
-                    profile.scheme = found
+                if let found = store.allSchemes(for: appearance).first(where: { $0.name == name }) {
+                    setScheme(found, for: appearance)
                 }
             }
         )
@@ -368,28 +390,43 @@ private struct ProfileColorsTab: View {
 
     private func colorBinding(_ keyPath: WritableKeyPath<ColorScheme, TermColor>) -> Binding<Color> {
         Binding(
-            get: { Color(nsColor: NSColor(profile.scheme[keyPath: keyPath])) },
+            get: { Color(nsColor: NSColor(profile.colorScheme(for: editingAppearance)[keyPath: keyPath])) },
             set: { newValue in
-                profile.scheme[keyPath: keyPath] = NSColor(newValue).termColor
-                markCustom()
+                mutateEditingScheme {
+                    $0[keyPath: keyPath] = NSColor(newValue).termColor
+                }
             }
         )
     }
 
     private func ansiBinding(_ index: Int) -> Binding<Color> {
         Binding(
-            get: { Color(nsColor: NSColor(profile.scheme.ansi[index])) },
+            get: { Color(nsColor: NSColor(profile.colorScheme(for: editingAppearance).ansi[index])) },
             set: { newValue in
-                profile.scheme.ansi[index] = NSColor(newValue).termColor
-                markCustom()
+                mutateEditingScheme {
+                    $0.ansi[index] = NSColor(newValue).termColor
+                }
             }
         )
     }
 
-    private func markCustom() {
-        if !profile.scheme.name.hasSuffix(" (Custom)") {
-            profile.scheme.name += " (Custom)"
+    private func mutateEditingScheme(_ mutate: (inout ColorScheme) -> Void) {
+        var scheme = profile.colorScheme(for: editingAppearance)
+        mutate(&scheme)
+        if !scheme.name.hasSuffix(" (Custom)") {
+            scheme.name += " (Custom)"
         }
+        setScheme(scheme, for: editingAppearance)
+    }
+
+    private func setScheme(_ scheme: ColorScheme, for appearance: AppearanceVariant) {
+        switch appearance {
+        case .light:
+            profile.lightScheme = scheme
+        case .dark:
+            profile.darkScheme = scheme
+        }
+        profile.syncLegacyColorScheme()
     }
 
     private func ansiGrid(range: Range<Int>, title: String) -> some View {
@@ -413,7 +450,11 @@ private struct ProfileColorsTab: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             var scheme = try ColorScheme.fromITermColors(url: url)
-            let names = Set(store.allSchemes.map(\.name))
+            let names = Set(
+                ColorScheme.builtIns(for: .light).map(\.name)
+                + ColorScheme.builtIns(for: .dark).map(\.name)
+                + store.settings.customSchemes.map(\.name)
+            )
             var name = scheme.name
             var i = 1
             while names.contains(name) {
@@ -422,7 +463,7 @@ private struct ProfileColorsTab: View {
             }
             scheme.name = name
             store.settings.customSchemes.append(scheme)
-            profile.scheme = scheme
+            setScheme(scheme, for: editingAppearance)
         } catch {
             importError = error.localizedDescription
         }
@@ -544,13 +585,33 @@ private struct ProfileTerminalTab: View {
 
 // MARK: Scheme preview
 
+struct SchemePairPreview: View {
+    let profile: Profile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            labeledPreview("Light", scheme: profile.lightScheme)
+            labeledPreview("Dark", scheme: profile.darkScheme)
+        }
+    }
+
+    private func labeledPreview(_ label: String, scheme: ColorScheme) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            SchemePreview(scheme: scheme, fontName: profile.fontName, fontSize: profile.fontSize)
+        }
+    }
+}
+
 struct SchemePreview: View {
     let scheme: ColorScheme
     let fontName: String
     let fontSize: Double
 
     var body: some View {
-        let font = Font(resolvedFont(name: fontName, size: 12) as CTFont)
+        let font = Font(resolvedFont(name: fontName, size: min(max(fontSize, 10), 14)) as CTFont)
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 0) {
                 Text("❯ ").foregroundColor(color(scheme.ansi[2]))

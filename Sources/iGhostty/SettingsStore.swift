@@ -76,6 +76,10 @@ final class SettingsStore: ObservableObject {
         ColorScheme.builtIns + settings.customSchemes
     }
 
+    func allSchemes(for appearance: AppearanceVariant) -> [ColorScheme] {
+        ColorScheme.builtIns(for: appearance) + settings.customSchemes
+    }
+
     func exportSettings(to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

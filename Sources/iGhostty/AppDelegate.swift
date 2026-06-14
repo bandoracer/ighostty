@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     private var settingsWindowController: SettingsWindowController?
     private var cascadePoint = NSPoint.zero
     private var settingsObserver: NSObjectProtocol?
+    private var appearanceObservation: NSKeyValueObservation?
     private var optionShortcutMonitor: Any?
 
     override init() {
@@ -30,7 +31,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let backgroundLaunch = CommandLine.arguments.contains("--background")
+        if backgroundLaunch, !runningPeerApplications().isEmpty {
+            NSLog("iGhostty background login item exiting because another iGhostty instance is already running")
+            exit(0)
+        }
+        if !backgroundLaunch {
+            terminateBackgroundPeerApplications()
+        }
+
         applyTheme()
+        appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+            DispatchQueue.main.async {
+                self?.refreshAppearanceDependentSurfaces()
+            }
+        }
         installAutomationChannelIfRequested()
         HotkeyManager.shared.handler = { DropdownWindowController.shared.toggle() }
         applyHotkeyRegistration()
@@ -47,10 +62,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         ) { [weak self] _ in
             self?.applyTheme()
             self?.applyHotkeyRegistration()
-            DropdownWindowController.shared.settingsDidChange()
+            self?.refreshAppearanceDependentSurfaces()
         }
 
-        if CommandLine.arguments.contains("--background") {
+        if backgroundLaunch {
             // Login-item launch: no windows, no Dock icon — just the
             // drop-down terminal service waiting on its hotkey.
             NSApp.setActivationPolicy(.accessory)
@@ -205,6 +220,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             return wc
         }
         return windowControllers.first { $0.window?.isVisible == true }
+    }
+
+    private func runningPeerApplications() -> [NSRunningApplication] {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return [] }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+            .filter { $0.processIdentifier != ownPID && !$0.isTerminated }
+    }
+
+    private func terminateBackgroundPeerApplications() {
+        for app in runningPeerApplications() where app.activationPolicy != .regular {
+            NSLog("iGhostty terminating background peer pid=%d", app.processIdentifier)
+            if !app.terminate() {
+                app.forceTerminate()
+            }
+        }
     }
 
     private func track(_ wc: TerminalWindowController) {
@@ -498,6 +529,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         case .light: NSApp.appearance = NSAppearance(named: .aqua)
         case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
         }
+    }
+
+    private func refreshAppearanceDependentSurfaces() {
+        windowControllers.forEach { $0.applyChrome() }
+        DropdownWindowController.shared.settingsDidChange()
     }
 
     func applyHotkeyRegistration() {

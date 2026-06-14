@@ -139,6 +139,7 @@ struct HotkeyPane: View {
             Section("Background") {
                 Toggle("⌘Q keeps iGhostty running in the background", isOn: $store.settings.hotkey.keepAvailableInBackground)
                 Toggle("Start at login (background, no windows)", isOn: loginItemBinding)
+                    .disabled(LoginItemService.availabilityIssue != nil)
                 if let loginItemError {
                     Text(loginItemError)
                         .font(.caption)
@@ -161,11 +162,13 @@ struct HotkeyPane: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { loginItemStatus = Self.loginAgent.status }
+        .onAppear {
+            refreshLoginItemStatus()
+            loginItemError = LoginItemService.availabilityIssue
+        }
     }
 
-    static let loginAgent = SMAppService.agent(plistName: "dev.ighostty.background.plist")
-    @State private var loginItemStatus: SMAppService.Status = SMAppService.agent(plistName: "dev.ighostty.background.plist").status
+    @State private var loginItemStatus: SMAppService.Status = LoginItemService.status
     @State private var loginItemError: String?
 
     private var hotkeyRows: Binding<Int> {
@@ -180,18 +183,18 @@ struct HotkeyPane: View {
             get: { loginItemStatus == .enabled },
             set: { enable in
                 do {
-                    if enable {
-                        try Self.loginAgent.register()
-                    } else {
-                        try Self.loginAgent.unregister()
-                    }
-                    loginItemError = nil
+                    try LoginItemService.setEnabled(enable)
+                    loginItemError = LoginItemService.availabilityIssue
                 } catch {
                     loginItemError = error.localizedDescription
                 }
-                loginItemStatus = Self.loginAgent.status
+                refreshLoginItemStatus()
             }
         )
+    }
+
+    private func refreshLoginItemStatus() {
+        loginItemStatus = LoginItemService.status
     }
 
     private func fractionSlider(_ label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {

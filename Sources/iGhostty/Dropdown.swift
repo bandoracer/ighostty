@@ -247,9 +247,10 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
     private func applyAppearance(to panel: NSWindow) {
         let profile = dropdownProfile()
         let opacity = effectiveOpacity(for: profile)
+        let scheme = profile.activeColorScheme
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        tabVC?.view.layer?.backgroundColor = NSColor(profile.scheme.background).withAlphaComponent(opacity).cgColor
+        tabVC?.view.layer?.backgroundColor = NSColor(scheme.background).withAlphaComponent(opacity).cgColor
         applyBlur(to: panel)
     }
 
@@ -323,7 +324,7 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         vc.view.layer?.cornerCurve = .continuous
         vc.view.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         vc.view.layer?.masksToBounds = true
-        vc.view.layer?.backgroundColor = NSColor(profile.scheme.background)
+        vc.view.layer?.backgroundColor = NSColor(profile.activeColorScheme.background)
             .withAlphaComponent(effectiveOpacity(for: profile))
             .cgColor
 

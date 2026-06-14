@@ -80,9 +80,10 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate {
 
         let opacity = effectiveOpacity(for: profile)
         let transparentContent = opacity < 0.999
-        window.backgroundColor = NSColor(profile.scheme.background).withAlphaComponent(opacity)
+        let scheme = profile.activeColorScheme
+        window.backgroundColor = NSColor(scheme.background).withAlphaComponent(opacity)
         window.isOpaque = !transparentContent
-        window.appearance = NSAppearance(named: profile.scheme.isLight ? .aqua : .darkAqua)
+        window.appearance = nil
 
         // Only touch the private window-server blur path when blur is actually
         // in use. Invoking it with radius 0 still enrolls the window in the

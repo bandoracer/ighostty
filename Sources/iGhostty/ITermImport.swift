@@ -96,7 +96,7 @@ enum ITermImport {
             p.closeOnExit = close ? .always : .never
         }
 
-        p.scheme = scheme(from: d, name: p.name)
+        p.setUniformColorScheme(scheme(from: d, name: p.name))
         return p
     }
 

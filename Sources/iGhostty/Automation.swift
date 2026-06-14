@@ -78,12 +78,12 @@ extension AppDelegate {
             return
         }
         if command.hasPrefix("setScheme:") {
-            // Live-recolor proof: mutate the default profile's scheme through
+            // Live-recolor proof: mutate the default profile's schemes through
             // the store, exactly like the Settings UI does.
             let name = String(command.dropFirst("setScheme:".count))
-            if let scheme = ColorScheme.builtIns.first(where: { $0.name == name }),
+            if let scheme = ColorScheme.builtIns(for: currentAppearanceVariant()).first(where: { $0.name == name }),
                let idx = store.settings.profiles.firstIndex(where: { $0.id == store.settings.defaultProfileID }) {
-                store.settings.profiles[idx].scheme = scheme
+                store.settings.profiles[idx].setUniformColorScheme(scheme)
             }
             return
         }
@@ -195,10 +195,9 @@ extension AppDelegate {
             NSLog("iGhostty automation: policy=%@ regularWindows=%d dropdownVisible=%d",
                   policy, windowControllers.count, DropdownWindowController.shared.isVisible ? 1 : 0)
         case "loginItem:on", "loginItem:off":
-            let agent = SMAppService.agent(plistName: "dev.ighostty.background.plist")
             do {
-                if command.hasSuffix(":on") { try agent.register() } else { try agent.unregister() }
-                NSLog("iGhostty automation: login agent status=%d", agent.status.rawValue)
+                try LoginItemService.setEnabled(command.hasSuffix(":on"))
+                NSLog("iGhostty automation: login agent status=%d", LoginItemService.status.rawValue)
             } catch {
                 NSLog("iGhostty automation: login agent error: %@", error.localizedDescription)
             }
