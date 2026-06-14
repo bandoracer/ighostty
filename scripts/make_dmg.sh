@@ -28,4 +28,13 @@ hdiutil create \
   "$DMG"
 
 rm -rf "$DMG_ROOT"
+
+IDENTITY=$(bash scripts/resolve_codesign_identity.sh)
+if [[ "$IDENTITY" == Developer\ ID\ Application:* ]]; then
+  codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+  echo "Signed $DMG (signed: $IDENTITY)"
+else
+  echo "warning: $DMG is not Developer ID signed; notarization will not be available"
+fi
+
 echo "Built $DMG"

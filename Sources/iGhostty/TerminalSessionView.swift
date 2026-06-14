@@ -371,10 +371,8 @@ final class TerminalSessionView: NSView,
     }
 
     private func ghosttyBackgroundOpacity(for profile: Profile) -> Double {
-        // SwiftTerm draws no terminal background in transparent mode; the
-        // NSWindow supplies the tinted alpha/blur behind the terminal cells.
-        // Match that composition by keeping Ghostty's Metal surface clear when
-        // profile transparency is active.
+        // In transparent mode the NSWindow supplies the tinted alpha/blur
+        // behind the terminal cells, so keep Ghostty's Metal surface clear.
         effectiveOpacity(for: profile) >= 0.999 ? 1 : 0
     }
 

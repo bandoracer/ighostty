@@ -26,21 +26,12 @@ cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 mkdir -p "$APP/Contents/Library/LaunchAgents"
 cp Support/dev.ighostty.background.plist "$APP/Contents/Library/LaunchAgents/"
 
-# Sign with a stable identity so TCC grants (Accessibility for the
-# double-tap hotkey) survive rebuilds. Ad-hoc signatures change every build,
-# which makes macOS treat each build as a brand-new app.
-IDENTITY="${IGHOSTTY_CODESIGN_IDENTITY:-${CODESIGN_IDENTITY:-}}"
-if [ -z "$IDENTITY" ]; then
-  IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null \
-    | awk -F'"' '/Apple Development: Ryan/ {print $2; exit}')
-fi
-if [ -z "$IDENTITY" ]; then
-  IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null \
-    | awk -F'"' '/Apple Development/ {print $2; exit}')
-fi
-if [ -z "$IDENTITY" ]; then
-  IDENTITY="-"
+IDENTITY=$(bash scripts/resolve_codesign_identity.sh)
+SIGN_ARGS=(--force --sign "$IDENTITY")
+if [[ "$IDENTITY" == Developer\ ID\ Application:* ]]; then
+  SIGN_ARGS+=(--options runtime --timestamp)
+elif [ "$IDENTITY" = "-" ]; then
   echo "warning: no stable signing identity found — ad-hoc signing (TCC grants will not survive rebuilds)"
 fi
-codesign --force -s "$IDENTITY" "$APP"
+codesign "${SIGN_ARGS[@]}" "$APP"
 echo "Built $APP (signed: $IDENTITY)"
