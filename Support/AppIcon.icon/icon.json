@@ -1,0 +1,237 @@
+{
+  "features" : [
+    "refractivity",
+    "specular-location"
+  ],
+  "fill-specializations" : [
+    {
+      "value" : {
+        "automatic-gradient" : "display-p3:0.46683,0.47486,0.70727,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "automatic-gradient" : "display-p3:0.10124,0.10298,0.15339,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "blend-mode-specializations" : [
+        {
+          "appearance" : "dark",
+          "value" : "multiply"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "screen"
+        }
+      ],
+      "blur-material-specializations" : [
+        {
+          "value" : 0.04
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0
+        }
+      ],
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "automatic-gradient" : "display-p3:0.41312,0.27714,0.96783,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "automatic-gradient" : "display-p3:0.44951,0.45202,0.44700,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "automatic-gradient" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "prompt flat.svg",
+          "name" : "prompt flat",
+          "opacity-specializations" : [
+            {
+              "value" : 0.45
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.75
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 1
+            }
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -51.13023401924943,
+              42
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "refractivity-specializations" : [
+        {
+          "value" : {
+            "depth" : 0.650859375,
+            "enabled" : true,
+            "strength" : 0.44734375
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "depth" : 0.882421875,
+            "enabled" : true,
+            "strength" : 0.415234375
+          }
+        }
+      ],
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0.92
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 1.8
+          }
+        }
+      ],
+      "specular-specializations" : [
+        {
+          "value" : "inside"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "outside"
+        }
+      ],
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 1
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 1
+          }
+        }
+      ]
+    },
+    {
+      "blur-material" : 0.1,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "automatic-gradient" : "display-p3:0.97459,0.98875,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "automatic-gradient" : "display-p3:0.54804,0.42437,1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "ghost flat.svg",
+          "name" : "ghost flat",
+          "opacity-specializations" : [
+            {
+              "value" : 1
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.76
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.69
+            }
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -51.13023401924943,
+              42
+            ]
+          }
+        }
+      ],
+      "opacity" : 1,
+      "position" : {
+        "scale" : 0.77,
+        "translation-in-points" : [
+          0,
+          0
+        ]
+      },
+      "refractivity-specializations" : [
+        {
+          "value" : {
+            "depth" : 0.16519531250000014,
+            "enabled" : true,
+            "strength" : 0.626640625
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "depth" : 0.8952734375,
+            "enabled" : true,
+            "strength" : 0.4912890625
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1.48
+      },
+      "specular" : true,
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.81
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.64
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

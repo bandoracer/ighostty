@@ -38,10 +38,24 @@ struct GeneralPane: View {
                 }
                 Toggle("Copy to clipboard on select", isOn: $store.settings.ui.copyOnSelect)
                 Toggle("Confirm closing running sessions", isOn: $store.settings.ui.confirmQuit)
+                Toggle("Automatically use Secure Keyboard Entry at password prompts", isOn: $store.settings.ui.autoSecureInput)
+                Toggle("Show Secure Keyboard Entry indicator", isOn: $store.settings.ui.secureInputIndication)
+                Picker("Shortcuts automation", selection: $store.settings.ui.automationPermission) {
+                    ForEach(AutomationPermission.allCases) { Text($0.label).tag($0) }
+                }
             }
 
             Section("Terminal Core") {
                 LabeledContent("Renderer", value: "Metal via libghostty")
+                LabeledContent("Ghostty resources") {
+                    if let issue = GhosttyResources.validationIssue {
+                        Text(issue)
+                            .foregroundStyle(.red)
+                    } else {
+                        Text(GhosttyResources.resourcesDir?.path.abbreviatingTilde ?? "Bundled")
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .formStyle(.grouped)
@@ -52,7 +66,7 @@ struct GeneralPane: View {
 
 struct HotkeyPane: View {
     @EnvironmentObject var store: SettingsStore
-    @State private var axTrusted = AXIsProcessTrusted()
+    @State private var axTrusted = AccessibilityPermission.isGranted
     private let axCheck = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -107,9 +121,12 @@ struct HotkeyPane: View {
                     .foregroundStyle(.secondary)
             }
             .onReceive(axCheck) { _ in
-                let trusted = AXIsProcessTrusted()
-                if trusted != axTrusted { axTrusted = trusted }
+                refreshAccessibilityState()
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                refreshAccessibilityState()
+            }
+            .onAppear { refreshAccessibilityState() }
 
             Section("Window") {
                 LabeledContent("Height") {
@@ -138,6 +155,8 @@ struct HotkeyPane: View {
 
             Section("Background") {
                 Toggle("⌘Q keeps iGhostty running in the background", isOn: $store.settings.hotkey.keepAvailableInBackground)
+                Toggle("Show notice when Dock Quit keeps iGhostty running", isOn: $store.settings.ui.showDockQuitBackgroundNotice)
+                    .disabled(!store.settings.hotkey.enabled || !store.settings.hotkey.keepAvailableInBackground)
                 Toggle("Start at login (background, no windows)", isOn: loginItemBinding)
                     .disabled(LoginItemService.availabilityIssue != nil)
                 if let loginItemError {
@@ -211,11 +230,14 @@ struct HotkeyPane: View {
     }
 
     private func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
+        _ = AccessibilityPermission.request()
+        AccessibilityPermission.openSettings()
+        refreshAccessibilityState()
+    }
+
+    private func refreshAccessibilityState() {
+        let trusted = AccessibilityPermission.isGranted
+        if trusted != axTrusted { axTrusted = trusted }
     }
 }
 
@@ -259,10 +281,14 @@ struct AdvancedPane: View {
                 }
             }
 
+            Section("Updates") {
+                UpdateSettingsView()
+            }
+
             Section("About") {
                 LabeledContent("Version", value: appVersion)
                 LabeledContent("Core", value: "GhosttyTerminal / libghostty — Metal renderer")
-                LabeledContent("Emulation", value: "xterm-256color, truecolor, mouse, hyperlinks, Kitty graphics")
+                LabeledContent("Emulation", value: "xterm-ghostty, truecolor, mouse, hyperlinks, Kitty graphics")
             }
         }
         .formStyle(.grouped)
@@ -293,5 +319,53 @@ struct AdvancedPane: View {
                 importError = error.localizedDescription
             }
         }
+    }
+}
+
+private struct UpdateSettingsView: View {
+    @State private var automaticallyChecks = false
+    @State private var automaticallyDownloads = false
+    @State private var canCheck = false
+    private let refresh = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Toggle("Check for updates automatically", isOn: Binding(
+            get: { automaticallyChecks },
+            set: { value in
+                AppUpdater.shared.automaticallyChecksForUpdates = value
+                syncFromUpdater()
+            }
+        ))
+        Toggle("Download updates automatically", isOn: Binding(
+            get: { automaticallyDownloads },
+            set: { value in
+                AppUpdater.shared.automaticallyDownloadsUpdates = value
+                syncFromUpdater()
+            }
+        ))
+        .disabled(!AppUpdater.shared.allowsAutomaticUpdates)
+
+        HStack {
+            Button("Check Now…") {
+                AppUpdater.shared.checkForUpdates(nil)
+                syncFromUpdater()
+            }
+            .disabled(!canCheck)
+            if let feed = AppUpdater.shared.feedURL?.absoluteString {
+                Text(feed)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .onAppear { syncFromUpdater() }
+        .onReceive(refresh) { _ in syncFromUpdater() }
+    }
+
+    private func syncFromUpdater() {
+        automaticallyChecks = AppUpdater.shared.automaticallyChecksForUpdates
+        automaticallyDownloads = AppUpdater.shared.automaticallyDownloadsUpdates
+        canCheck = AppUpdater.shared.canCheckForUpdates
     }
 }

@@ -77,12 +77,12 @@ extension ColorScheme {
 
     static func builtIns(for appearance: AppearanceVariant) -> [ColorScheme] {
         switch appearance {
-        case .light: return lightBuiltIns
-        case .dark: return darkBuiltIns
+        case .light: return uniqued(lightBuiltIns + ghosttyCatalogLight)
+        case .dark: return uniqued(darkBuiltIns + ghosttyCatalogDark)
         }
     }
 
-    static let builtIns: [ColorScheme] = darkBuiltIns
+    static var builtIns: [ColorScheme] { builtIns(for: .dark) }
     static let defaultLight = lightBuiltIns.first { $0.name == "Codex" } ?? lightBuiltIns[0]
     static let defaultDark = darkBuiltIns.first { $0.name == "Codex" } ?? darkBuiltIns[0]
 
@@ -196,6 +196,11 @@ extension ColorScheme {
 
     private static let lightBuiltIns: [ColorScheme] = codexThemePairs.map(\.light)
     private static let darkBuiltIns: [ColorScheme] = codexThemePairs.map(\.dark)
+
+    private static func uniqued(_ schemes: [ColorScheme]) -> [ColorScheme] {
+        var names = Set<String>()
+        return schemes.filter { names.insert($0.name).inserted }
+    }
 
     /// Parses an iTerm2 `.itermcolors` property list.
     static func fromITermColors(url: URL) throws -> ColorScheme {
@@ -311,7 +316,12 @@ struct Profile: Codable, Equatable, Hashable, Identifiable {
     // Terminal behavior
     var scrollbackLines = 10_000
     var unlimitedScrollback = false
-    var termVariable = "xterm-256color"
+    var termVariable = "xterm-ghostty"
+    var shellIntegration: ShellIntegrationMode = .detect
+    /// Comma-separated Ghostty feature names. "cursor" follows cursorBlink.
+    var shellIntegrationFeatures = "cursor,path,title"
+    /// Raw Ghostty config lines composed after native iGhostty settings.
+    var ghosttyConfigOverrides = ""
     var optionAsMeta = true
     var mouseReporting = true
     var audibleBell = true
@@ -371,6 +381,11 @@ extension Profile {
         scrollbackLines = val(.scrollbackLines, d.scrollbackLines)
         unlimitedScrollback = val(.unlimitedScrollback, d.unlimitedScrollback)
         termVariable = val(.termVariable, d.termVariable)
+        shellIntegration = val(.shellIntegration, d.shellIntegration)
+        shellIntegrationFeatures = GhosttyShellIntegration.canonicalFeatureText(
+            val(.shellIntegrationFeatures, d.shellIntegrationFeatures)
+        )
+        ghosttyConfigOverrides = val(.ghosttyConfigOverrides, d.ghosttyConfigOverrides)
         optionAsMeta = val(.optionAsMeta, d.optionAsMeta)
         mouseReporting = val(.mouseReporting, d.mouseReporting)
         audibleBell = val(.audibleBell, d.audibleBell)
@@ -513,6 +528,10 @@ struct UISettings: Codable, Equatable {
     var desaturationAmount: Double = 0.15
     var copyOnSelect = false
     var confirmQuit = true
+    var showDockQuitBackgroundNotice = true
+    var autoSecureInput = true
+    var secureInputIndication = true
+    var automationPermission: AutomationPermission = .ask
     var useMetalRenderer = true
     /// iTerm2's View > Use Transparency (⌘U): when off, profile opacity is
     /// ignored and every terminal renders fully opaque.
@@ -537,6 +556,10 @@ struct UISettings: Codable, Equatable {
         desaturationAmount = (try? c.decodeIfPresent(Double.self, forKey: .desaturationAmount)) ?? nil ?? d.desaturationAmount
         copyOnSelect = (try? c.decodeIfPresent(Bool.self, forKey: .copyOnSelect)) ?? nil ?? d.copyOnSelect
         confirmQuit = (try? c.decodeIfPresent(Bool.self, forKey: .confirmQuit)) ?? nil ?? d.confirmQuit
+        showDockQuitBackgroundNotice = (try? c.decodeIfPresent(Bool.self, forKey: .showDockQuitBackgroundNotice)) ?? nil ?? d.showDockQuitBackgroundNotice
+        autoSecureInput = (try? c.decodeIfPresent(Bool.self, forKey: .autoSecureInput)) ?? nil ?? d.autoSecureInput
+        secureInputIndication = (try? c.decodeIfPresent(Bool.self, forKey: .secureInputIndication)) ?? nil ?? d.secureInputIndication
+        automationPermission = (try? c.decodeIfPresent(AutomationPermission.self, forKey: .automationPermission)) ?? nil ?? d.automationPermission
         useMetalRenderer = (try? c.decodeIfPresent(Bool.self, forKey: .useMetalRenderer)) ?? nil ?? d.useMetalRenderer
         useTransparency = (try? c.decodeIfPresent(Bool.self, forKey: .useTransparency)) ?? nil ?? d.useTransparency
     }

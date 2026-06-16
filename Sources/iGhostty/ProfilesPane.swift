@@ -567,16 +567,45 @@ private struct ProfileTerminalTab: View {
                 Toggle("Report mouse events to apps", isOn: $profile.mouseReporting)
             }
 
+            Section("Shell Integration") {
+                Picker("Mode", selection: $profile.shellIntegration) {
+                    ForEach(ShellIntegrationMode.allCases) { Text($0.label).tag($0) }
+                }
+                TextField("Features", text: $profile.shellIntegrationFeatures, prompt: Text("cursor,path,title"))
+                Text("Comma-separated Ghostty feature names. Add prompt to enable prompt marks and jump-to-prompt; omit it if prompt rows flicker during tab changes. SSH and sudo wrappers are opt-in.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Bell") {
                 Toggle("Audible bell", isOn: $profile.audibleBell)
                 Toggle("Visual bell (flash)", isOn: $profile.visualBell)
             }
 
             Section("Session") {
-                TextField("TERM variable", text: $profile.termVariable, prompt: Text("xterm-256color"))
+                TextField("TERM variable", text: $profile.termVariable, prompt: Text("xterm-ghostty"))
                 Picker("When the shell exits", selection: $profile.closeOnExit) {
                     ForEach(CloseOnExit.allCases) { Text($0.label).tag($0) }
                 }
+            }
+
+            Section {
+                TextEditor(text: $profile.ghosttyConfigOverrides)
+                    .font(.body.monospaced())
+                    .frame(height: 140)
+                let issues = GhosttyConfigOverrides.parse(profile.ghosttyConfigOverrides).issues
+                if !issues.isEmpty {
+                    ForEach(issues) { issue in
+                        Text("Line \(issue.line): \(issue.message)")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            } header: {
+                Text("Ghostty Config Overrides")
+            } footer: {
+                Text("One key = value per line. These are composed after native profile settings and may override them. Repeated keys such as keybind are preserved.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

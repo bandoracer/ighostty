@@ -18,6 +18,7 @@ ln -s /Applications "$DMG_ROOT/Applications"
 [ -f README.md ] && cp README.md "$DMG_ROOT/README.md"
 [ -f LICENSE ] && cp LICENSE "$DMG_ROOT/LICENSE"
 [ -f THIRD_PARTY_NOTICES.md ] && cp THIRD_PARTY_NOTICES.md "$DMG_ROOT/THIRD_PARTY_NOTICES.md"
+[ -f GHOSTTY_PARITY.md ] && cp GHOSTTY_PARITY.md "$DMG_ROOT/GHOSTTY_PARITY.md"
 
 hdiutil create \
   -volname "iGhostty" \

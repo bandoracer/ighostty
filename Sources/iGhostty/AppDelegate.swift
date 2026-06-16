@@ -47,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             }
         }
         installAutomationChannelIfRequested()
+        _ = AppUpdater.shared
         HotkeyManager.shared.handler = { DropdownWindowController.shared.toggle() }
         applyHotkeyRegistration()
 
@@ -108,43 +109,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// otherwise it quits. Deliberately avoids NSApp.terminate: AppKit's
     /// pre-quit document review can wedge in a nested run loop.
     @objc func quitRequested(_ sender: Any?) {
-        let hk = store.settings.hotkey
-        if hk.enabled, hk.keepAvailableInBackground {
-            backgroundQuit()
+        if keepsDropdownAvailableInBackground {
+            _ = backgroundQuit()
         } else {
             quitCompletely(sender)
         }
     }
 
-    /// ⌥⌘Q — actually quit, taking the drop-down terminal with it.
+    /// ⌥⌘Q — actually quit, taking the drop-down terminal and any peer
+    /// background service with it.
     @objc func quitCompletely(_ sender: Any?) {
+        guard confirmFullShutdown(actionTitle: "Quit iGhostty completely?", buttonTitle: "Quit") else { return }
+        shutdownAndExit(terminatePeers: true)
+    }
+
+    @objc func restartCompletely(_ sender: Any?) {
+        guard confirmFullShutdown(actionTitle: "Restart iGhostty completely?", buttonTitle: "Restart") else { return }
+        launchSelfAfterExit()
+        shutdownAndExit(terminatePeers: true)
+    }
+
+    private func confirmFullShutdown(actionTitle: String, buttonTitle: String) -> Bool {
         var busy = windowControllers.reduce(0) { $0 + $1.tabVC.busySessionCount }
         busy += DropdownWindowController.shared.tabVC?.busySessionCount ?? 0
 
         if store.settings.ui.confirmQuit, busy > 0 {
             let alert = NSAlert()
-            alert.messageText = "Quit iGhostty completely?"
+            alert.messageText = actionTitle
             alert.informativeText = (busy == 1
                 ? "A session is still running a job that will be terminated."
                 : "\(busy) sessions are still running jobs that will be terminated.")
-                + " The drop-down terminal will stop too."
-            alert.addButton(withTitle: "Quit")
+                + " The drop-down terminal and any background iGhostty process will stop too."
+            alert.addButton(withTitle: buttonTitle)
             alert.addButton(withTitle: "Cancel")
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard alert.runModal() == .alertFirstButtonReturn else { return false }
         }
-        shutdownAndExit()
+        return true
     }
 
-    private func shutdownAndExit() -> Never {
+    private func shutdownAndExit(terminatePeers: Bool = false) -> Never {
         store.saveNow()
+        if terminatePeers {
+            terminatePeerApplications(includeRegular: true)
+        }
         windowControllers.forEach { $0.tabVC.terminateAll() }
         DropdownWindowController.shared.terminateAll()
         exit(0)
     }
 
-    /// Reached only for system/external termination (logout, shutdown, Dock
-    /// quit, AppleScript). Never block those — clean up and go.
+    private func launchSelfAfterExit() {
+        let bundleURL = Bundle.main.bundleURL
+        guard bundleURL.pathExtension == "app" else { return }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            "-c",
+            "sleep 1; /usr/bin/open \"$1\"",
+            "ighostty-restart",
+            bundleURL.path,
+        ]
+        do {
+            try process.run()
+        } catch {
+            NSLog("iGhostty failed to schedule restart: %@", error.localizedDescription)
+        }
+    }
+
+    /// Reached by AppKit termination requests such as Dock Quit. Keep the
+    /// drop-down service alive when background mode is enabled; explicit full
+    /// quit/restart uses `shutdownAndExit` directly.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if keepsDropdownAvailableInBackground {
+            _ = backgroundQuit(showDockQuitNotice: true)
+            return .terminateCancel
+        }
+
         store.saveNow()
         windowControllers.forEach { $0.tabVC.terminateAll() }
         DropdownWindowController.shared.terminateAll()
@@ -153,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     /// ⌘Q with the background drop-down enabled: close the terminal windows,
     /// drop the Dock icon, keep the process (and the drop-down sessions) alive.
-    private func backgroundQuit() {
+    private func backgroundQuit(showDockQuitNotice: Bool = false) -> Bool {
         let running = windowControllers.reduce(0) { $0 + $1.tabVC.busySessionCount }
         if store.settings.ui.confirmQuit, running > 0 {
             let alert = NSAlert()
@@ -164,12 +204,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
                 + " iGhostty stays available in the background - the drop-down terminal keeps its sessions. Quit completely with ⌥⌘Q."
             alert.addButton(withTitle: "Close Windows")
             alert.addButton(withTitle: "Cancel")
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard alert.runModal() == .alertFirstButtonReturn else { return false }
         }
 
         settingsWindowController?.close()
         windowControllers.forEach { $0.forceCloseWindow() }
         DropdownWindowController.shared.hide()
+
+        if showDockQuitNotice {
+            showDockQuitBackgroundNoticeIfNeeded()
+        }
+
         NSApp.setActivationPolicy(.accessory)
 
         // Keep the hotkey service responsive: exempt the now-invisible app
@@ -180,6 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
                 reason: "Drop-down terminal hotkey service"
             )
         }
+        return true
     }
 
     private var backgroundActivity: NSObjectProtocol?
@@ -222,6 +268,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         return windowControllers.first { $0.window?.isVisible == true }
     }
 
+    private var keepsDropdownAvailableInBackground: Bool {
+        let hotkey = store.settings.hotkey
+        return hotkey.enabled && hotkey.keepAvailableInBackground
+    }
+
+    private func showDockQuitBackgroundNoticeIfNeeded() {
+        guard store.settings.ui.showDockQuitBackgroundNotice else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "iGhostty is still running"
+        alert.informativeText = "The drop-down terminal remains available in the background. Use Quit iGhostty Completely or Restart iGhostty Completely when you want to stop the background process too."
+        alert.addButton(withTitle: "OK")
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = "Don't show again"
+        alert.runModal()
+
+        if alert.suppressionButton?.state == .on {
+            store.settings.ui.showDockQuitBackgroundNotice = false
+            store.saveNow()
+        }
+    }
+
     private func runningPeerApplications() -> [NSRunningApplication] {
         guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return [] }
         let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -230,11 +298,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     }
 
     private func terminateBackgroundPeerApplications() {
-        for app in runningPeerApplications() where app.activationPolicy != .regular {
-            NSLog("iGhostty terminating background peer pid=%d", app.processIdentifier)
+        terminatePeerApplications(includeRegular: false)
+    }
+
+    private func terminatePeerApplications(includeRegular: Bool) {
+        let peers = runningPeerApplications().filter { includeRegular || $0.activationPolicy != .regular }
+        for app in peers {
+            NSLog("iGhostty terminating peer pid=%d", app.processIdentifier)
             if !app.terminate() {
                 app.forceTerminate()
             }
+        }
+
+        guard !peers.isEmpty else { return }
+        let deadline = Date().addingTimeInterval(0.75)
+        while Date() < deadline, peers.contains(where: { !$0.isTerminated }) {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+
+        for app in peers where !app.isTerminated {
+            NSLog("iGhostty force terminating peer pid=%d", app.processIdentifier)
+            app.forceTerminate()
         }
     }
 
@@ -426,6 +510,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         keyTabViewController()?.activeSession?.restart()
     }
 
+    @objc func jumpToPreviousPrompt(_ sender: Any?) {
+        keyTabViewController()?.activeSession?.performGhosttyAction("jump_to_prompt:-1")
+    }
+
+    @objc func jumpToNextPrompt(_ sender: Any?) {
+        keyTabViewController()?.activeSession?.performGhosttyAction("jump_to_prompt:1")
+    }
+
     /// ⌥⌘W — close the whole tab (all panes), with the usual confirmation.
     @objc func closeAllPanesInTab(_ sender: Any?) {
         keyTerminalWindowController()?.window?.performClose(sender)
@@ -478,6 +570,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     @objc func showSettings(_ sender: Any?) {
         showSettings(tabIndex: nil)
+    }
+
+    @MainActor @objc func checkForUpdates(_ sender: Any?) {
+        AppUpdater.shared.checkForUpdates(sender)
+    }
+
+    @objc func toggleSecureKeyboardEntry(_ sender: Any?) {
+        SecureInputManager.shared.toggleManual()
     }
 
     @objc func showProfileSettings(_ sender: Any?) {
@@ -560,12 +660,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// path. The in-app double-tap works without the permission either way.
     private func promptAccessibilityIfNeeded() {
         guard ProcessInfo.processInfo.environment["IGHOSTTY_AUTOMATION"] != "1",
-              !AXIsProcessTrusted() else { return }
+              !AccessibilityPermission.isGranted else { return }
         let promptedKey = "didOfferAccessibilityPrompt"
         guard !UserDefaults.standard.bool(forKey: promptedKey) else { return }
         UserDefaults.standard.set(true, forKey: promptedKey)
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
+        AccessibilityPermission.request()
     }
 
     // MARK: Dynamic menus
@@ -591,12 +690,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(checkForUpdates(_:)):
+            return AppUpdater.shared.canCheckForUpdates
         case #selector(splitVertically(_:)), #selector(splitHorizontally(_:)),
              #selector(clearBuffer(_:)), #selector(findPanelAction(_:)),
              #selector(biggerText(_:)), #selector(smallerText(_:)),
              #selector(resetTextSize(_:)), #selector(selectPane(_:)),
-             #selector(editSession(_:)), #selector(scrollToTop(_:)), #selector(scrollToEnd(_:)):
+             #selector(editSession(_:)), #selector(scrollToTop(_:)), #selector(scrollToEnd(_:)),
+             #selector(jumpToPreviousPrompt(_:)), #selector(jumpToNextPrompt(_:)):
             return keyTabViewController() != nil
+        case #selector(toggleSecureKeyboardEntry(_:)):
+            menuItem.state = SecureInputManager.shared.isManualEnabled ? .on : .off
+            return true
         case #selector(toggleBroadcastInput(_:)):
             menuItem.state = keyTabViewController()?.broadcastEnabled == true ? .on : .off
             return keyTabViewController() != nil

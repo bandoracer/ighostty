@@ -13,7 +13,9 @@ enum MainMenuBuilder {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About iGhostty", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(AppDelegate.checkForUpdates(_:)), keyEquivalent: "")
         appMenu.addItem(withTitle: "Settings…", action: #selector(AppDelegate.showSettings(_:)), keyEquivalent: ",")
+        appMenu.addItem(withTitle: "Secure Keyboard Entry", action: #selector(AppDelegate.toggleSecureKeyboardEntry(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide iGhostty", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthers = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
@@ -21,10 +23,9 @@ enum MainMenuBuilder {
         appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit iGhostty", action: #selector(AppDelegate.quitRequested(_:)), keyEquivalent: "q")
-        // Hold ⌥ in the menu (or press ⌥⌘Q) to also stop the background drop-down.
+        appMenu.addItem(withTitle: "Restart iGhostty Completely…", action: #selector(AppDelegate.restartCompletely(_:)), keyEquivalent: "")
         let quitAll = appMenu.addItem(withTitle: "Quit iGhostty Completely", action: #selector(AppDelegate.quitCompletely(_:)), keyEquivalent: "q")
         quitAll.keyEquivalentModifierMask = [.command, .option]
-        quitAll.isAlternate = true
         main.addItem(submenuItem("iGhostty", appMenu))
 
         // Shell menu
@@ -127,6 +128,11 @@ enum MainMenuBuilder {
         broadcast.keyEquivalentModifierMask = [.command, .option]
         session.addItem(.separator())
         session.addItem(withTitle: "Restart Session", action: #selector(AppDelegate.restartSession(_:)), keyEquivalent: "")
+        session.addItem(.separator())
+        let previousPrompt = session.addItem(withTitle: "Jump to Previous Prompt", action: #selector(AppDelegate.jumpToPreviousPrompt(_:)), keyEquivalent: String(UnicodeScalar(NSUpArrowFunctionKey)!))
+        previousPrompt.keyEquivalentModifierMask = [.command]
+        let nextPrompt = session.addItem(withTitle: "Jump to Next Prompt", action: #selector(AppDelegate.jumpToNextPrompt(_:)), keyEquivalent: String(UnicodeScalar(NSDownArrowFunctionKey)!))
+        nextPrompt.keyEquivalentModifierMask = [.command]
         main.addItem(submenuItem("Session", session))
 
         // Profiles menu (rebuilt dynamically)

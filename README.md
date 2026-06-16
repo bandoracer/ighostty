@@ -24,10 +24,21 @@ emulation, rendering, input, selection, and Ghostty-compatible configuration.
 - **Separate light and dark themes** - follow system appearance, force light, or
   force dark. Profiles keep separate light and dark color-scheme selections
   with side-by-side previews, plus manual ANSI-16 editing for either variant.
-- **Built-in schemes** - Codex-style scheme families including Codex, Ayu,
-  Catppuccin, Dracula, Everforest, GitHub, Gruvbox, Linear, Material, Monokai,
-  Night Owl, Nord, One, Rose Pine, Solarized, Tokyo Night, Vercel, Xcode, and
-  Classic.
+- **Built-in schemes** - Codex-style scheme families plus the generated
+  Ghostty theme catalog from `GhosttyTheme`, preserving separate light and dark
+  selection.
+- **Ghostty runtime resources** - the app bundle includes Ghostty shell
+  integration scripts, `xterm-ghostty` terminfo source and compiled entries,
+  and a `ghostty` shim on `GHOSTTY_BIN_DIR`.
+- **Ghostty-compatible PTY environment** - new sessions default to
+  `TERM=xterm-ghostty` and export `GHOSTTY_RESOURCES_DIR`, `GHOSTTY_BIN_DIR`,
+  `TERMINFO`, `COLORTERM`, `TERM_PROGRAM`, and `TERM_PROGRAM_VERSION`.
+- **Shell integration controls** - profiles can detect the shell, disable
+  integration, or force a supported shell mode, with editable Ghostty
+  `shell-integration-features`. The `cursor` feature follows the profile's
+  Text tab cursor blink setting.
+- **Advanced Ghostty config overrides** - profile-level `key = value` lines are
+  composed after native settings, including repeated keys such as `keybind`.
 - **Window styles** - standard themed title bar, or compact with no title bar
   and traffic lights floating over the terminal. Switch live in Settings.
 - **Always-on background service** - optional login item starts iGhostty
@@ -42,22 +53,38 @@ emulation, rendering, input, selection, and Ghostty-compatible configuration.
   pane cycling, maximize active pane, inactive-pane desaturation, new windows,
   and native tabs.
 - **Broadcast input** - type into every pane in the active tab at once.
-- **cwd inheritance without shell integration** - new tabs/splits can start in
-  the previous session's directory via `libproc`; OSC 7 is also supported when
-  the shell emits it.
+- **Prompt navigation and cwd tracking** - optional shell integration prompt
+  marks drive Ghostty `jump_to_prompt` actions, and OSC 7 updates
+  active-directory tracking and the macOS proxy icon.
 - **Window titles that track the shell** - titles update live from the active
   process and working directory.
 - **Find and terminal controls** - scrollback search, clear buffer, copy on
   select, per-session font zoom, visual/audible bell, transparency toggle,
   mouse reporting, and quit confirmation for active jobs.
+- **Terminal callbacks** - command-finished state, progress reports, desktop
+  notifications, URL opening, hover links, and selection requests are wired to
+  macOS app behavior.
+- **Secure Keyboard Entry** - manual menu toggle plus automatic password-prompt
+  detection, with a visible lock indicator while secure input is active.
+- **Ghostty SSH helpers** - `iGhostty +ssh` installs/caches `xterm-ghostty`
+  terminfo on remote hosts where possible, and `iGhostty +ssh-cache` manages
+  the local cache.
+- **Built-in updates** - Sparkle 2 powers automatic update checks, the
+  `Check for Updates...` app-menu item, and release appcast generation from the
+  signed DMG.
+
+See `GHOSTTY_PARITY.md` for the living Ghostty support matrix, including
+remaining app-layer gaps and intentional non-goals.
 
 ## Build & run
 
 ```sh
 make app      # builds dist/iGhostty.app (release) with generated icon
 make dmg      # builds dist/iGhostty-<version>.dmg with app + Applications shortcut
+make appcast  # builds dist/appcast.xml for Sparkle/GitHub Releases
 make run      # build + open
 swift build   # debug build through SwiftPM
+swift test    # focused Ghostty parity unit tests
 ```
 
 Requires Xcode's Swift toolchain (Swift 5.9+ / macOS 13+). Dependencies resolve
@@ -72,6 +99,17 @@ drag `iGhostty.app` to `Applications`.
 Local release builds are signed with the available Apple Development identity
 when present. They are not Developer ID notarized unless you build with a
 Developer ID Application certificate and submit the DMG for notarization.
+
+Sparkle updates use:
+
+```text
+https://github.com/bandoracer/ighostty/releases/latest/download/appcast.xml
+```
+
+The Sparkle public EdDSA key is embedded in `Support/Info.plist`; the matching
+private key is stored in the local Keychain under account `dev.ighostty.app`.
+Use `make sparkle-key-help` for key export/import commands and `make appcast`
+after the final signed or notarized DMG is built.
 
 ## Keyboard shortcuts
 
@@ -88,6 +126,7 @@ Developer ID Application certificate and submit the DMG for notarization.
 | Select tab by number | `Cmd-1` ... `Cmd-9` |
 | Previous / next tab | `Shift-Cmd-[` / `Shift-Cmd-]` |
 | Find / next / previous / use selection | `Cmd-F` / `Cmd-G` / `Shift-Cmd-G` / `Cmd-E` |
+| Previous / next prompt | `Cmd-Up` / `Cmd-Down` |
 | Clear buffer | `Cmd-K` |
 | Scroll to top / end | `Cmd-Home` / `Cmd-End` |
 | Font bigger / smaller / reset | `Cmd-+` / `Cmd--` / `Cmd-0` |
@@ -96,8 +135,35 @@ Developer ID Application certificate and submit the DMG for notarization.
 | Drop-down terminal | double-tap `Control` (configurable, global) |
 | Open profiles | `Cmd-O` |
 | Settings | `Cmd-,` |
-| Close windows, keep background service | `Cmd-Q` |
-| Quit completely | `Option-Cmd-Q` |
+| Secure Keyboard Entry | app menu toggle |
+| Close windows, keep background service | `Cmd-Q` / Dock Quit |
+| Restart completely, including background process | app menu |
+| Quit completely, including background process | `Option-Cmd-Q` |
+
+## Ghostty resources and SSH
+
+Packaged builds copy bundled Ghostty resources to:
+
+```text
+iGhostty.app/Contents/Resources/GhosttyResources
+```
+
+Debug `swift build` runs resolve the same resources from
+`Support/GhosttyResources` when launched from the repository root. Every PTY
+gets the Ghostty resource, terminfo, and binary paths in its environment, so
+local shells can use `xterm-ghostty` without a separate install.
+
+The SSH helper is available from the app executable:
+
+```sh
+iGhostty +ssh host.example.com
+iGhostty +ssh --cache=false -- user@host
+iGhostty +ssh-cache --host=user@host
+iGhostty +ssh-cache --remove=user@host
+```
+
+When remote terminfo installation fails, `+ssh` warns and falls back to
+`TERM=xterm-256color`.
 
 ## Settings file
 
@@ -117,6 +183,10 @@ Sources/iGhostty/
   MainMenu.swift                    full menu bar built in code
   Models.swift                      Profile / ColorScheme / AppSettings (Codable)
   SettingsStore.swift               JSON persistence + live-change notifications
+  AppUpdater.swift                   Sparkle updater controller
+  GhosttyIntegration.swift           resources, shell integration, themes, overrides
+  GhosttySSHCLI.swift                +ssh and +ssh-cache command-line helpers
+  SecureInputManager.swift           secure keyboard entry state and heuristics
   TerminalSessionView.swift         one pane: GhosttyTerminal surface + PTY bridge
   LocalPTYSession.swift             local shell process and PTY I/O
   SplitTree.swift                   nested NSSplitView pane tree per tab
@@ -146,6 +216,11 @@ splitV
 splitH
 newTab
 newWindow
+performAction:<ghostty-action>
+secureInput:on|off|toggle
+reportUpdater
+quitCompletely
+restartCompletely
 toggleDropdown
 openSettings:<tab>
 setScheme:<name>
@@ -158,13 +233,15 @@ The automation channel is disabled unless the environment variable is set.
 
 iGhostty is MIT licensed. See `LICENSE`.
 
-iGhostty depends on `GhosttyTerminal` from `libghostty-spm`, which wraps
-Ghostty's embeddable `libghostty` library for Apple platforms. See
+iGhostty depends on `GhosttyTerminal` and `GhosttyTheme` from
+`libghostty-spm`, which wrap Ghostty's embeddable `libghostty` library and
+theme catalog for Apple platforms. Built-in updates use Sparkle. See
 `THIRD_PARTY_NOTICES.md` for dependency notices.
 
 ## Roadmap
 
 - Session restore across launches
-- Triggers, smart selection, and shell-integration marks
+- Public AppleScript object model and Shortcuts/App Intents
+- Triggers and smart selection
 - tmux control mode
-- Deeper Ghostty configuration surfacing in the profile editor
+- More first-class Ghostty settings in the profile editor

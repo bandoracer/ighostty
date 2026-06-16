@@ -10,6 +10,8 @@ import ServiceManagement
 ///   type:<text>        send text to the focused terminal ("\n" → newline)
 ///   splitV / splitH    split the active pane
 ///   newTab / newWindow
+///   performAction:<a>  run a Ghostty action in the focused terminal
+///   secureInput:<v>    set secure input on/off/toggle
 ///   openSettings:<n>   open the settings window at tab n
 ///   toggleDropdown
 ///   snap:<directory>   capture every visible window to PNG files
@@ -87,6 +89,20 @@ extension AppDelegate {
             }
             return
         }
+        if command.hasPrefix("performAction:") {
+            let action = String(command.dropFirst("performAction:".count))
+            _ = automationTargetTabVC()?.activeSession?.performGhosttyAction(action)
+            return
+        }
+        if command.hasPrefix("secureInput:") {
+            switch String(command.dropFirst("secureInput:".count)) {
+            case "on": SecureInputManager.shared.setManualEnabled(true)
+            case "off": SecureInputManager.shared.setManualEnabled(false)
+            case "toggle": SecureInputManager.shared.toggleManual()
+            default: break
+            }
+            return
+        }
         if command.hasPrefix("windowStyle:") {
             let raw = String(command.dropFirst("windowStyle:".count))
             if let style = WindowStyle(rawValue: raw) {
@@ -153,6 +169,17 @@ extension AppDelegate {
                       p.cursorShape.rawValue, p.cursorBlink ? 1 : 0,
                       s.termView.isUsingMetalRenderer ? 1 : 0)
             }
+        case "reportAccessibility":
+            NSLog("iGhostty accessibility: granted=%d ax=%d",
+                  AccessibilityPermission.isGranted ? 1 : 0,
+                  AccessibilityPermission.isTrustedForAccessibility ? 1 : 0)
+        case "reportUpdater":
+            NSLog("iGhostty updater: configured=%d canCheck=%d automaticChecks=%d automaticDownloads=%d feed=%@",
+                  AppUpdater.shared.isConfigured ? 1 : 0,
+                  AppUpdater.shared.canCheckForUpdates ? 1 : 0,
+                  AppUpdater.shared.automaticallyChecksForUpdates ? 1 : 0,
+                  AppUpdater.shared.automaticallyDownloadsUpdates ? 1 : 0,
+                  AppUpdater.shared.feedURL?.absoluteString ?? "")
         case "reportGhosttyColors":
             if let s = automationTargetTabVC()?.activeSession {
                 NSLog("iGhostty ghostty color config:\n%@", s.renderedGhosttyColorConfig)
@@ -185,6 +212,8 @@ extension AppDelegate {
             quitRequested(nil)
         case "quitCompletely":
             quitCompletely(nil)
+        case "restartCompletely":
+            restartCompletely(nil)
         case "policyInfo":
             let policy: String
             switch NSApp.activationPolicy() {

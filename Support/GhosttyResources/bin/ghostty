@@ -1,0 +1,14 @@
+#!/bin/sh
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+APP_BIN="$DIR/../../../MacOS/iGhostty"
+if [ -x "$APP_BIN" ]; then
+  exec "$APP_BIN" "$@"
+fi
+
+REPO_BIN="$DIR/../../../.build/debug/iGhostty"
+if [ -x "$REPO_BIN" ]; then
+  exec "$REPO_BIN" "$@"
+fi
+
+exec iGhostty "$@"

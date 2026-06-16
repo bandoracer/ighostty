@@ -1,0 +1,3 @@
+Upstream Ghostty resources snapshot
+commit=fdbf9ff3a31d7531b691cb49c98fc465a1a503a0
+date=2026-06-15T05:06:59Z

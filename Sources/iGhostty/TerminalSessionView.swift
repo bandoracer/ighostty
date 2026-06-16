@@ -1,6 +1,7 @@
 import AppKit
 import CoreImage
 import GhosttyTerminal
+import UserNotifications
 
 protocol TerminalSessionViewDelegate: AnyObject {
     func sessionTitleDidChange(_ session: TerminalSessionView)
@@ -106,19 +107,31 @@ final class TerminalSessionView: NSView,
     TerminalSurfaceGridResizeDelegate,
     TerminalSurfaceBellDelegate,
     TerminalSurfaceCloseDelegate,
-    TerminalSurfacePwdDelegate
+    TerminalSurfacePwdDelegate,
+    TerminalSurfaceProgressReportDelegate,
+    TerminalSurfaceCommandFinishedDelegate,
+    TerminalSurfaceDesktopNotificationDelegate,
+    TerminalSurfaceOpenURLDelegate,
+    TerminalSurfaceHoverLinkDelegate,
+    TerminalSurfaceTextSelectionRequestDelegate
 {
     let termView: SessionTerminalView
     private let flashView = PassthroughView()
+    private let secureInputIndicator = NSImageView()
 
     private(set) var appliedProfile: Profile
     private(set) var terminalTitle = ""
     private(set) var osc7Directory: String?
+    private(set) var lastCommandExitCode: Int?
+    private(set) var lastCommandDurationNanos: UInt64?
+    private(set) var progressState: TerminalProgressState?
+    private(set) var progressPercent: Int?
     private(set) var hasStarted = false
     private(set) var processExited = false
     private var fontDelta: CGFloat = 0
     private var shellDisplayName = "shell"
     private var settingsObserver: NSObjectProtocol?
+    private var secureInputObserver: NSObjectProtocol?
     private var appliedTransparencyFlag = true
     private var startDirectoryUsed: String?
     private var startupGeneration = 0
@@ -158,6 +171,13 @@ final class TerminalSessionView: NSView,
         flashView.alphaValue = 0
         addSubview(flashView)
 
+        secureInputIndicator.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Secure Keyboard Entry")
+        secureInputIndicator.symbolConfiguration = .init(pointSize: 13, weight: .semibold)
+        secureInputIndicator.contentTintColor = .systemYellow
+        secureInputIndicator.toolTip = "Secure Keyboard Entry is active"
+        secureInputIndicator.isHidden = true
+        addSubview(secureInputIndicator)
+
         termView.delegate = self
         termView.onActivate = { [weak self] in
             guard let self else { return }
@@ -171,6 +191,7 @@ final class TerminalSessionView: NSView,
             configuration: ghosttyTerminalConfiguration(for: profile),
             theme: ghosttyTheme(for: profile)
         )
+        terminalController.setColorScheme(ghosttyColorScheme(for: currentAppearanceVariant()))
         termView.controller = terminalController
         termView.setAccessibilityElement(true)
         termView.setAccessibilityIdentifier("terminal.surface")
@@ -182,7 +203,14 @@ final class TerminalSessionView: NSView,
             forName: .iGhosttySettingsChanged, object: nil, queue: .main
         ) { [weak self] _ in
             self?.reapplyFromStore()
+            self?.updateSecureInputIndicator()
         }
+        secureInputObserver = NotificationCenter.default.addObserver(
+            forName: .iGhosttySecureInputChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.updateSecureInputIndicator()
+        }
+        updateSecureInputIndicator()
     }
 
     @available(*, unavailable)
@@ -190,11 +218,13 @@ final class TerminalSessionView: NSView,
 
     deinit {
         if let settingsObserver { NotificationCenter.default.removeObserver(settingsObserver) }
+        if let secureInputObserver { NotificationCenter.default.removeObserver(secureInputObserver) }
     }
 
     override func layout() {
         super.layout()
         flashView.frame = bounds
+        secureInputIndicator.frame = NSRect(x: bounds.maxX - 26, y: bounds.maxY - 26, width: 18, height: 18)
         let pad = CGFloat(appliedProfile.padding)
         termView.frame = bounds.insetBy(dx: pad, dy: pad)
         termView.fitToSize()
@@ -233,21 +263,24 @@ final class TerminalSessionView: NSView,
         if env["CLICOLOR"] == "0" {
             env.removeValue(forKey: "CLICOLOR")
         }
-        env["TERM"] = profile.termVariable.isEmpty ? "xterm-256color" : profile.termVariable
-        env["COLORTERM"] = "truecolor"
-        env["TERM_PROGRAM"] = "iGhostty"
-        env["TERM_PROGRAM_VERSION"] = appVersion
         if env["LANG"] == nil { env["LANG"] = "en_US.UTF-8" }
         for (k, v) in profile.environmentDictionary { env[k] = v }
+        let launch = GhosttyShellIntegration.configure(
+            shellPath: shellPath,
+            args: profile.shellArguments,
+            loginShellName: profile.useLoginShell ? "-\(shellDisplayName)" : nil,
+            profile: profile,
+            environment: &env
+        )
         let envList = env.map { "\($0.key)=\($0.value)" }
 
-        let execName = profile.useLoginShell ? "-\(shellDisplayName)" : nil
         let dir = initialDirectory ?? NSHomeDirectory()
         startDirectoryUsed = dir
 
         let pty = LocalPTYSession(
             onOutput: { [weak self] data in
                 guard let owner = self else { return }
+                SecureInputManager.shared.observeTerminalOutput(data, for: owner)
                 owner.ghosttySession.receive(data)
             },
             onExit: { [weak self] code, runtimeMs in
@@ -257,10 +290,10 @@ final class TerminalSessionView: NSView,
         )
         ptySession = pty
         pty.start(
-            executable: shellPath,
-            args: profile.shellArguments,
+            executable: launch.executable,
+            args: launch.args,
             environment: envList,
-            execName: execName,
+            execName: launch.execName,
             currentDirectory: dir,
             columns: max(40, profile.columns),
             rows: max(10, profile.rows)
@@ -309,12 +342,9 @@ final class TerminalSessionView: NSView,
         let transparent = opacity < 0.999
         appliedTransparencyFlag = SettingsStore.shared.settings.ui.useTransparency
 
+        terminalController?.setColorScheme(ghosttyColorScheme(for: currentAppearanceVariant()))
         terminalController?.setTerminalConfiguration(ghosttyTerminalConfiguration(for: profile))
         terminalController?.setTheme(ghosttyTheme(for: profile))
-        termView.configuration = TerminalSurfaceOptions(
-            backend: .inMemory(ghosttySession),
-            fontSize: Float(CGFloat(profile.fontSize) + fontDelta)
-        )
 
         let activeScheme = profile.activeColorScheme
         let schemeBg = NSColor(activeScheme.background)
@@ -322,8 +352,16 @@ final class TerminalSessionView: NSView,
         termView.layer?.backgroundColor = NSColor.clear.cgColor
 
         needsLayout = true
+        termView.fitToSize()
         termView.needsDisplay = true
         window?.invalidateShadow()
+    }
+
+    private func ghosttyColorScheme(for appearance: AppearanceVariant) -> TerminalColorScheme {
+        switch appearance {
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
 
     private func ghosttyTerminalConfiguration(for profile: Profile) -> TerminalConfiguration {
@@ -340,11 +378,22 @@ final class TerminalSessionView: NSView,
             builder.withCustom("copy-on-select", SettingsStore.shared.settings.ui.copyOnSelect ? "clipboard" : "false")
             builder.withCustom("clipboard-read", "allow")
             builder.withCustom("clipboard-write", "allow")
-            builder.withCustom("term", profile.termVariable.isEmpty ? "xterm-256color" : profile.termVariable)
+            builder.withCustom("term", profile.termVariable.isEmpty ? "xterm-ghostty" : profile.termVariable)
+            builder.withCustom("shell-integration", profile.shellIntegration.ghosttyValue)
+            let features = GhosttyShellIntegration.ghosttyConfigFeatures(
+                profile.shellIntegrationFeatures,
+                cursorBlink: profile.cursorBlink
+            )
+            if !features.isEmpty {
+                builder.withCustom("shell-integration-features", features)
+            }
             builder.withCustom("confirm-close-surface", "false")
             builder.withCustom("mouse-reporting", profile.mouseReporting ? "true" : "false")
             builder.withCustom("macos-option-as-alt", profile.optionAsMeta ? "true" : "false")
             builder.withCustom("scrollback-limit", "\(scrollbackLimitBytes(for: profile))")
+            builder.withCustom("macos-auto-secure-input", SettingsStore.shared.settings.ui.autoSecureInput ? "true" : "false")
+            builder.withCustom("macos-secure-input-indication", SettingsStore.shared.settings.ui.secureInputIndication ? "true" : "false")
+            builder.applyGhosttyOverrides(profile.ghosttyConfigOverrides)
         }
     }
 
@@ -443,6 +492,11 @@ final class TerminalSessionView: NSView,
         ptySession?.send(data)
     }
 
+    @discardableResult
+    func performGhosttyAction(_ action: String) -> Bool {
+        termView.performBindingAction(action)
+    }
+
     private func handleBell() {
         if appliedProfile.audibleBell { NSSound.beep() }
         if appliedProfile.visualBell { flash() }
@@ -454,6 +508,11 @@ final class TerminalSessionView: NSView,
             ctx.duration = 0.25
             flashView.animator().alphaValue = 0
         }
+    }
+
+    private func updateSecureInputIndicator() {
+        secureInputIndicator.isHidden = !SettingsStore.shared.settings.ui.secureInputIndication
+            || !SecureInputManager.shared.isEnabled
     }
 
     // MARK: Titles & directories
@@ -525,6 +584,53 @@ final class TerminalSessionView: NSView,
             osc7Directory = path
         }
         delegate?.sessionTitleDidChange(self)
+    }
+
+    func terminalDidReportProgress(state: TerminalProgressState, percent: Int?) {
+        progressState = state
+        progressPercent = percent
+        delegate?.sessionTitleDidChange(self)
+    }
+
+    func terminalDidFinishCommand(exitCode: Int?, durationNanos: UInt64) {
+        lastCommandExitCode = exitCode
+        lastCommandDurationNanos = durationNanos
+    }
+
+    func terminalDidRequestDesktopNotification(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title.isEmpty ? displayTitle : title
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "dev.ighostty.notification.\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+
+    func terminalDidRequestOpenURL(_ url: String, kind: TerminalOpenURLKind) {
+        guard let parsed = URL(string: url) else { return }
+        NSWorkspace.shared.open(parsed)
+    }
+
+    func terminalDidUpdateHoverLink(_ url: String?) {
+        termView.toolTip = url
+        if url == nil {
+            NSCursor.arrow.set()
+        } else {
+            NSCursor.pointingHand.set()
+        }
+    }
+
+    func terminalDidRequestTextSelection(_ request: TerminalTextSelectionRequest) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(request.text, forType: .string)
     }
 
     private func handleProcessExit(code: Int32?, runtimeMs: UInt64) {

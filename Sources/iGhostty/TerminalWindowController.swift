@@ -48,6 +48,7 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate {
 
         tabVC.onTitleChange = { [weak self] title in
             self?.window?.title = title
+            self?.updateRepresentedURL()
             self?.applyChrome() // active pane (and its profile) may have changed
         }
         tabVC.onLastPaneClosed = { [weak self] in
@@ -64,6 +65,7 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate {
             if self.window?.title != title {
                 self.window?.title = title
             }
+            self.updateRepresentedURL()
         }
         titleTimer?.tolerance = 0.5
     }
@@ -145,6 +147,19 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate {
         }
         tabVC.terminateAll()
         onClose?(self)
+    }
+
+    private func updateRepresentedURL() {
+        guard let dir = tabVC.activeSession?.currentWorkingDirectory else {
+            window?.representedURL = nil
+            return
+        }
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: dir, isDirectory: &isDirectory), isDirectory.boolValue {
+            window?.representedURL = URL(fileURLWithPath: dir, isDirectory: true)
+        } else {
+            window?.representedURL = nil
+        }
     }
 
     /// Called by the "+" button in the native tab bar.
