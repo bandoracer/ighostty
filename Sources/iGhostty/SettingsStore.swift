@@ -87,3 +87,42 @@ final class SettingsStore: ObservableObject {
         settings = decoded
     }
 }
+
+// MARK: - Color scheme status
+
+extension SettingsStore {
+    /// The user-created scheme with this name, if any.
+    func customScheme(named name: String) -> ColorScheme? {
+        settings.customSchemes.first { $0.name == name }
+    }
+
+    /// Whether a scheme is user-created (saved in customSchemes or flagged `.user`).
+    func isUserCreatedScheme(_ scheme: ColorScheme) -> Bool {
+        scheme.origin == .user || customScheme(named: scheme.name) != nil
+    }
+
+    /// The pristine scheme this one is based on (a saved user scheme or a built-in),
+    /// used to detect unsaved edits. Returns nil when there is nothing to compare to.
+    func canonicalScheme(for scheme: ColorScheme, appearance: AppearanceVariant) -> ColorScheme? {
+        if let custom = customScheme(named: scheme.name) {
+            return custom.withOrigin(.user)
+        }
+        guard scheme.origin != .user else { return nil }
+
+        let builtIns = ColorScheme.builtIns(for: appearance)
+        if let builtIn = builtIns.first(where: { $0.name == scheme.name }) {
+            return builtIn
+        }
+        if let baseName = scheme.legacyCustomBaseName,
+           let builtIn = builtIns.first(where: { $0.name == baseName }) {
+            return builtIn
+        }
+        return nil
+    }
+
+    /// Whether a scheme's colors diverge from its canonical source.
+    func isModifiedScheme(_ scheme: ColorScheme, for appearance: AppearanceVariant) -> Bool {
+        guard let canonical = canonicalScheme(for: scheme, appearance: appearance) else { return false }
+        return !scheme.hasSameColors(as: canonical)
+    }
+}

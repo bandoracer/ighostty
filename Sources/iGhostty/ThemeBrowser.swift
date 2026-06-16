@@ -50,16 +50,16 @@ struct ThemeBrowser: View {
         var result: [SchemeGroup] = []
 
         let custom = match(customSchemes.map { $0.withOrigin(.user) })
-        if !custom.isEmpty { result.append(SchemeGroup(id: "custom", title: "User Created", schemes: custom)) }
+        if !custom.isEmpty { result.append(SchemeGroup(id: "custom", title: "Your Themes", schemes: custom)) }
 
         let featured = match(ColorScheme.featuredBuiltIns(for: appearance))
-        if !featured.isEmpty { result.append(SchemeGroup(id: "featured", title: "Built In: Featured", schemes: featured)) }
+        if !featured.isEmpty { result.append(SchemeGroup(id: "featured", title: "Featured", schemes: featured)) }
 
         // Catalog entries that duplicate a Custom/Featured name are dropped so a
         // theme appears once (matching the precedence the flat list used).
         let shown = Set(custom.map(\.name)).union(featured.map(\.name))
         let catalog = match(ColorScheme.catalogSchemes(for: appearance)).filter { !shown.contains($0.name) }
-        if !catalog.isEmpty { result.append(SchemeGroup(id: "catalog", title: "Built In: Ghostty Catalog", schemes: catalog)) }
+        if !catalog.isEmpty { result.append(SchemeGroup(id: "catalog", title: "Ghostty Catalog", schemes: catalog)) }
 
         return result
     }
@@ -234,12 +234,6 @@ struct ThemeCard: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 0)
-                Text(scheme.origin == .user ? "User" : "Built-in")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.primary.opacity(0.08)))
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption)
