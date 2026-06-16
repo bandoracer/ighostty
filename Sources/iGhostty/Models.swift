@@ -277,6 +277,11 @@ enum CloseOnExit: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum TerminalTerm {
+    static let ghostty = "xterm-ghostty"
+    static let legacyDefault = "xterm-256color"
+}
+
 struct Profile: Codable, Equatable, Hashable, Identifiable {
     var id = UUID()
     var name = "Default"
@@ -316,7 +321,7 @@ struct Profile: Codable, Equatable, Hashable, Identifiable {
     // Terminal behavior
     var scrollbackLines = 10_000
     var unlimitedScrollback = false
-    var termVariable = "xterm-ghostty"
+    var termVariable = TerminalTerm.ghostty
     var shellIntegration: ShellIntegrationMode = .detect
     /// Comma-separated Ghostty feature names. "cursor" follows cursorBlink.
     var shellIntegrationFeatures = "cursor,path,title"
@@ -589,5 +594,18 @@ struct AppSettings: Codable, Equatable {
         solarized.syncLegacyColorScheme()
 
         return AppSettings(profiles: [main, tokyo, solarized], defaultProfileID: main.id)
+    }
+
+    @discardableResult
+    mutating func migrateLegacyDefaults() -> Bool {
+        var changed = false
+        for index in profiles.indices {
+            let term = profiles[index].termVariable.trimmingCharacters(in: .whitespacesAndNewlines)
+            if term == TerminalTerm.legacyDefault {
+                profiles[index].termVariable = TerminalTerm.ghostty
+                changed = true
+            }
+        }
+        return changed
     }
 }

@@ -145,7 +145,7 @@ enum GhosttyShellIntegration {
         environment env: inout [String: String]
     ) -> GhosttyShellLaunch {
         let term = profile.termVariable.trimmingCharacters(in: .whitespacesAndNewlines)
-        env["TERM"] = term.isEmpty ? "xterm-ghostty" : term
+        env["TERM"] = term.isEmpty ? TerminalTerm.ghostty : term
         env["COLORTERM"] = "truecolor"
         env["TERM_PROGRAM"] = "iGhostty"
         env["TERM_PROGRAM_VERSION"] = appVersion

@@ -378,7 +378,7 @@ final class TerminalSessionView: NSView,
             builder.withCustom("copy-on-select", SettingsStore.shared.settings.ui.copyOnSelect ? "clipboard" : "false")
             builder.withCustom("clipboard-read", "allow")
             builder.withCustom("clipboard-write", "allow")
-            builder.withCustom("term", profile.termVariable.isEmpty ? "xterm-ghostty" : profile.termVariable)
+            builder.withCustom("term", profile.termVariable.isEmpty ? TerminalTerm.ghostty : profile.termVariable)
             builder.withCustom("shell-integration", profile.shellIntegration.ghosttyValue)
             let features = GhosttyShellIntegration.ghosttyConfigFeatures(
                 profile.shellIntegrationFeatures,

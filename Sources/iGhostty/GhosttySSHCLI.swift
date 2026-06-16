@@ -68,12 +68,12 @@ enum GhosttySSHCLI {
             return 2
         }
 
-        var term = "xterm-256color"
+        var term = TerminalTerm.legacyDefault
         if opts.terminfo, let destination = resolveDestination(sshPath: opts.sshPath, args: opts.sshArgs) {
             let cache = SSHCache.load()
             let cached = opts.cache && cache.contains(destination)
             if cached || installTerminfo(sshPath: opts.sshPath, args: opts.sshArgs) {
-                term = "xterm-ghostty"
+                term = TerminalTerm.ghostty
                 if opts.cache, !cached {
                     var updated = cache
                     updated.add(destination)

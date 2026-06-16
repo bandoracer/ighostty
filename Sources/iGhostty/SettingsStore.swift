@@ -31,8 +31,10 @@ final class SettingsStore: ObservableObject {
         try? FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
 
         if let data = try? Data(contentsOf: fileURL) {
-            if let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            if var decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+                let migrated = decoded.migrateLegacyDefaults()
                 settings = decoded
+                if migrated { saveNow() }
             } else {
                 // Never destroy a file we can't read — move it aside and start fresh.
                 let backup = directoryURL.appendingPathComponent("settings.unreadable-\(Int(Date().timeIntervalSince1970)).json")
@@ -88,6 +90,8 @@ final class SettingsStore: ObservableObject {
 
     func importSettings(from url: URL) throws {
         let data = try Data(contentsOf: url)
-        settings = try JSONDecoder().decode(AppSettings.self, from: data)
+        var decoded = try JSONDecoder().decode(AppSettings.self, from: data)
+        decoded.migrateLegacyDefaults()
+        settings = decoded
     }
 }

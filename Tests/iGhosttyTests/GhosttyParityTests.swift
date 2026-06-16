@@ -54,6 +54,17 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertNotNil(env["TERMINFO"])
     }
 
+    func testSettingsMigrationMovesLegacyTermDefaultToGhostty() {
+        var settings = AppSettings.freshDefault()
+        settings.profiles[0].termVariable = "xterm-256color"
+        settings.profiles[1].termVariable = "screen-256color"
+
+        XCTAssertTrue(settings.migrateLegacyDefaults())
+        XCTAssertEqual(settings.profiles[0].termVariable, "xterm-ghostty")
+        XCTAssertEqual(settings.profiles[1].termVariable, "screen-256color")
+        XCTAssertFalse(settings.migrateLegacyDefaults())
+    }
+
     func testShellIntegrationCursorFeatureFollowsProfileBlinkSetting() {
         XCTAssertEqual(
             GhosttyShellIntegration.effectiveFeatures("cursor:blink,path,title", cursorBlink: false),
