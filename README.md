@@ -4,6 +4,34 @@
 with AppKit and Swift, backed by `GhosttyTerminal` / `libghostty` for terminal
 emulation, rendering, input, selection, and Ghostty-compatible configuration.
 
+[![CI](https://github.com/bandoracer/ighostty/actions/workflows/ci.yml/badge.svg)](https://github.com/bandoracer/ighostty/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform: macOS 13+](https://img.shields.io/badge/platform-macOS%2013%2B-blue.svg)](#build--run)
+[![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange.svg)](#build--run)
+
+iGhostty pairs Ghostty's embeddable terminal core with an iTerm2-style macOS
+app layer: a Quake-style drop-down terminal, per-profile light/dark themes,
+iTerm2 config import, native tabs and splits, and built-in updates. The
+emulator, renderer, and input handling come from `libghostty`; iGhostty owns
+everything around it.
+
+## Contents
+
+- [Features](#features)
+- [Compatibility](#compatibility)
+  - [iTerm2 compatibility](#iterm2-compatibility)
+  - [Ghostty features](#ghostty-features)
+- [Build & run](#build--run)
+- [Download & install](#download--install)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Ghostty resources and SSH](#ghostty-resources-and-ssh)
+- [Settings file](#settings-file)
+- [Architecture](#architecture)
+- [Testing hook](#testing-hook)
+- [Contributing](#contributing)
+- [License & credits](#license--credits)
+- [Roadmap](#roadmap)
+
 ## Features
 
 - **libghostty terminal core** - VT/xterm emulation, GPU-backed rendering,
@@ -73,8 +101,74 @@ emulation, rendering, input, selection, and Ghostty-compatible configuration.
   `Check for Updates...` app-menu item, and release appcast generation from the
   signed DMG.
 
-See `GHOSTTY_PARITY.md` for the living Ghostty support matrix, including
-remaining app-layer gaps and intentional non-goals.
+See [`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md) for the living Ghostty support
+matrix, including remaining app-layer gaps and intentional non-goals.
+
+## Compatibility
+
+iGhostty aims to feel familiar coming from iTerm2 while running on Ghostty's
+terminal core. Two compatibility surfaces matter: **importing your iTerm2
+configuration**, and **how much of Ghostty** is exposed.
+
+### iTerm2 compatibility
+
+iGhostty imports iTerm2 settings from three sources:
+
+| Source | What it contains | Where to import |
+| --- | --- | --- |
+| `~/Library/Preferences/com.googlecode.iterm2.plist` | All of your iTerm2 profiles (the `New Bookmarks` array) | Settings → Advanced → *Import iTerm2…* |
+| Dynamic Profiles file (JSON or plist with a `Profiles` array) | One or more shareable profiles | Settings → Advanced → *Import iTerm2…* |
+| `.itermcolors` file | A single color scheme | Colors tab → *Import iTerm2 Scheme (.itermcolors)…* |
+
+Profile import maps these iTerm2 keys onto iGhostty profile settings:
+
+| iTerm2 setting | iGhostty profile setting | Notes |
+| --- | --- | --- |
+| Name | Profile name | |
+| Custom Command + Command | Login shell vs. custom command + arguments | `Custom Shell`/`Yes` ⇒ custom command; otherwise login shell |
+| Custom Directory + Working Directory | Working directory | `Yes` ⇒ custom path, `Recycle` ⇒ reuse previous session's directory, otherwise home |
+| Normal Font | Font family + size | Size clamped to 6–72 pt |
+| Columns / Rows | Initial columns / rows | |
+| Scrollback Lines / Unlimited Scrollback | Scrollback | |
+| Transparency | Background transparency | iTerm2's `0 = opaque` scale, clamped to ≤ 0.9 |
+| Blur / Blur Radius | Background blur + radius | Radius clamped to 0–64 |
+| Cursor Type | Cursor shape | `0` underline, `1` bar, `2` block |
+| Blinking Cursor | Cursor blink | Also drives the `cursor` shell-integration feature |
+| Option Key Sends | Option-as-meta | Non-zero ⇒ Option sends meta |
+| Mouse Reporting | Mouse reporting | |
+| Silence Bell / Visual Bell | Audible bell / visual bell | |
+| Terminal Type | `TERM` value | |
+| Close Sessions On End | Close-on-exit behavior | |
+| Ansi 0–15, Background, Foreground, Cursor, Cursor Text, Selection | Color scheme | Imported as a `<name> (iTerm2)` scheme |
+
+Anything iTerm2-specific that has no iGhostty equivalent (triggers, smart
+selection, AppleScript, semantic history, status bar components, etc.) is not
+imported — see the [Roadmap](#roadmap) for what's planned and
+[`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md) for intentional non-goals.
+
+### Ghostty features
+
+The terminal emulator, GPU renderer, font/ligature/IME handling, mouse,
+selection, and the Kitty graphics protocol all come from `libghostty`, so
+behavior tracks upstream Ghostty. iGhostty adds Ghostty-aware app integration on
+top:
+
+| Ghostty capability | iGhostty support |
+| --- | --- |
+| VT/xterm emulation, GPU rendering, fonts, IME, selection | Shipped via `GhosttyTerminal` / `libghostty` |
+| Kitty graphics protocol | Shipped (libghostty core) |
+| `xterm-ghostty` terminfo + bundled shell integration | Shipped; bundled in the app and exported into every PTY |
+| Shell integration (zsh, bash, fish, elvish, nushell) | Shipped; per-profile detect / disable / force-shell, plus editable `shell-integration-features` |
+| OSC 7 cwd, OSC 8 hyperlinks, OSC 9/777 notifications, OSC 9;4 progress | Shipped; wired to AppKit (proxy icon, link opening, notifications) |
+| Command-finished / desktop notifications | Shipped |
+| Prompt navigation (`jump_to_prompt`) | Shipped; enable the `prompt` shell-integration feature to emit marks |
+| Ghostty theme catalog | Shipped; augments iGhostty's built-in schemes |
+| Raw Ghostty `key = value` config overrides (incl. repeated `keybind`) | Shipped per profile |
+| `+ssh` remote `xterm-ghostty` terminfo install | Shipped (see [SSH](#ghostty-resources-and-ssh)) |
+| Custom shaders, terminal inspector | Non-goals (trimmed by `libghostty-spm`) |
+
+The full, status-tracked matrix — including partials, planned work, and
+non-goals — lives in [`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md).
 
 ## Build & run
 
@@ -99,6 +193,14 @@ drag `iGhostty.app` to `Applications`.
 Local release builds are signed with the available Apple Development identity
 when present. They are not Developer ID notarized unless you build with a
 Developer ID Application certificate and submit the DMG for notarization.
+
+**First launch (Gatekeeper).** If a build is signed but not notarized, macOS may
+refuse to open it the first time. Right-click (or Control-click) `iGhostty.app`
+and choose **Open**, then confirm — or clear the quarantine flag manually:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/iGhostty.app
+```
 
 Sparkle updates use:
 
@@ -228,6 +330,19 @@ snap:<directory>
 ```
 
 The automation channel is disabled unless the environment variable is set.
+
+## Contributing
+
+Contributions are welcome — bug fixes, parity improvements, and new app-layer
+features. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, coding
+guidelines, and the PR checklist.
+
+- **Report a bug:** [bug report form](https://github.com/bandoracer/ighostty/issues/new?template=bug_report.yml)
+- **Request a feature:** [feature request form](https://github.com/bandoracer/ighostty/issues/new?template=feature_request.yml)
+  (check [`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md) first)
+- **Report a security issue:** see [`SECURITY.md`](SECURITY.md) — please report
+  privately, not as a public issue.
+- **Release history:** [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License & credits
 

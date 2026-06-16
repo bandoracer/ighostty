@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/bandoracer/ighostty/security/advisories/new
+    about: Please report security issues privately, not as a public issue. See SECURITY.md.
+  - name: Ghostty parity & non-goals
+    url: https://github.com/bandoracer/ighostty/blob/main/GHOSTTY_PARITY.md
+    about: Check whether a feature is already shipped, planned, or an intentional non-goal before filing.

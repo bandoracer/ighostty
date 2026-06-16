@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest an improvement or new capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Before filing, please skim
+        [`GHOSTTY_PARITY.md`](https://github.com/bandoracer/ighostty/blob/main/GHOSTTY_PARITY.md) —
+        the request may already be **Planned**, or an intentional **Non-goal**
+        (for example, custom shaders and the terminal inspector live in upstream
+        Ghostty, not iGhostty).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or pain point, not just the solution.
+      placeholder: I'm always trying to…, but iGhostty…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like iGhostty to do?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the app does this touch?
+      options:
+        - iTerm2 compatibility / import
+        - Ghostty feature parity
+        - Drop-down terminal / hotkey
+        - Profiles, colors, or settings
+        - Tabs, splits, or windowing
+        - SSH / terminfo helpers
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you've thought about, or how other terminals handle this.
+    validations:
+      required: false

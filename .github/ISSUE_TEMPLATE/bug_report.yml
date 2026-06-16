@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a problem with iGhostty
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please search
+        [existing issues](https://github.com/bandoracer/ighostty/issues) first —
+        and check [`GHOSTTY_PARITY.md`](https://github.com/bandoracer/ighostty/blob/main/GHOSTTY_PARITY.md)
+        in case the behavior is a known limitation or intentional non-goal.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including what you expected instead.
+      placeholder: When I…, iGhostty…
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps that reliably trigger the issue.
+      placeholder: |
+        1. Open iGhostty
+        2. …
+        3. See error
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: iGhostty version
+      description: From the iGhostty → About menu (e.g. 1.0.3).
+      placeholder: "1.0.3"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: From the Apple menu → About This Mac (e.g. 14.5).
+      placeholder: "14.5"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: How did you install iGhostty?
+      options:
+        - DMG from GitHub Releases
+        - Built from source (swift build / make app)
+        - Other (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: |
+        Optional. Console output, crash logs (Console.app → Crash Reports), or
+        screenshots. Logs are formatted automatically, no backticks needed.
+      render: shell
+    validations:
+      required: false
