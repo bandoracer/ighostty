@@ -118,6 +118,7 @@ enum ITermImport {
         let fg = color(d, "Foreground Color") ?? fallback.foreground
         return ColorScheme(
             name: "\(name) (iTerm2)",
+            origin: .user,
             ansi: ansi,
             foreground: fg,
             background: bg,

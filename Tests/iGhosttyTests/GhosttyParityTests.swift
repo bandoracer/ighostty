@@ -65,6 +65,31 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertFalse(settings.migrateLegacyDefaults())
     }
 
+    func testLegacyColorSchemeDecodeDefaultsToBuiltInOrigin() throws {
+        let source = ColorScheme.defaultDark
+        let data = try JSONEncoder().encode(source)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "origin")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+        let decoded = try JSONDecoder().decode(ColorScheme.self, from: legacyData)
+
+        XCTAssertEqual(decoded.origin, .builtIn)
+        XCTAssertTrue(decoded.hasSameColors(as: source))
+    }
+
+    func testCustomSchemeMigrationMarksLibraryAndProfileReferencesAsUserCreated() {
+        var settings = AppSettings.freshDefault()
+        var imported = ColorScheme.defaultDark
+        imported.name = "Imported"
+        settings.customSchemes = [imported]
+        settings.profiles[0].darkScheme = imported
+
+        XCTAssertTrue(settings.migrateLegacyDefaults())
+        XCTAssertEqual(settings.customSchemes[0].origin, .user)
+        XCTAssertEqual(settings.profiles[0].darkScheme.origin, .user)
+    }
+
     func testShellIntegrationCursorFeatureFollowsProfileBlinkSetting() {
         XCTAssertEqual(
             GhosttyShellIntegration.effectiveFeatures("cursor:blink,path,title", cursorBlink: false),

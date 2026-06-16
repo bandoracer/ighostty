@@ -311,6 +311,7 @@ private struct ProfileColorsTab: View {
     @Binding var profile: Profile
     @EnvironmentObject var store: SettingsStore
     @State private var importError: String?
+    @State private var schemeError: String?
     @State private var editingAppearance: AppearanceVariant = .dark
     @State private var browsingAppearance: AppearanceVariant?
 
@@ -334,6 +335,40 @@ private struct ProfileColorsTab: View {
                 Button("Import iTerm2 Scheme (.itermcolors)…") { importScheme() }
             }
 
+            Section("Manage Scheme") {
+                selectedSchemeStatus
+                HStack {
+                    Button {
+                        revertEditingScheme()
+                    } label: {
+                        Label("Revert", systemImage: "arrow.uturn.backward")
+                    }
+                    .disabled(!isEditingSchemeModified)
+
+                    Button {
+                        duplicateEditingScheme()
+                    } label: {
+                        Label("Duplicate", systemImage: "plus.square.on.square")
+                    }
+                }
+
+                HStack {
+                    Button {
+                        renameEditingScheme()
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    .disabled(!isEditingSchemeUserCreated)
+
+                    Button(role: .destructive) {
+                        deleteEditingScheme()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .disabled(!isEditingSchemeUserCreated)
+                }
+            }
+
             Section("Text & Cursor") {
                 colorRow("Foreground", \.foreground)
                 colorRow("Background", \.background)
@@ -352,6 +387,11 @@ private struct ProfileColorsTab: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importError ?? "")
+        }
+        .alert("Scheme action failed", isPresented: .init(get: { schemeError != nil }, set: { _ in schemeError = nil })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(schemeError ?? "")
         }
         .sheet(item: $browsingAppearance) { appearance in
             ThemeBrowser(
@@ -379,6 +419,10 @@ private struct ProfileColorsTab: View {
                     Text(scheme.name)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                    schemeBadge(isSchemeUserCreated(scheme) ? ColorSchemeOrigin.user.label : ColorSchemeOrigin.builtIn.label)
+                    if isSchemeModified(scheme, for: appearance) {
+                        schemeBadge("Modified")
+                    }
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -390,6 +434,29 @@ private struct ProfileColorsTab: View {
         .buttonStyle(.plain)
         .help("Browse \(appearance.label.lowercased()) themes")
         .padding(.vertical, 2)
+    }
+
+    private var selectedSchemeStatus: some View {
+        let scheme = profile.colorScheme(for: editingAppearance)
+        return LabeledContent("Selected") {
+            HStack(spacing: 6) {
+                Text(scheme.name)
+                    .lineLimit(1)
+                schemeBadge(isSchemeUserCreated(scheme) ? ColorSchemeOrigin.user.label : ColorSchemeOrigin.builtIn.label)
+                if isSchemeModified(scheme, for: editingAppearance) {
+                    schemeBadge("Modified")
+                }
+            }
+        }
+    }
+
+    private func schemeBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(Color.primary.opacity(0.08)))
     }
 
     private func colorRow(_ label: String, _ keyPath: WritableKeyPath<ColorScheme, TermColor>) -> some View {
@@ -421,9 +488,6 @@ private struct ProfileColorsTab: View {
     private func mutateEditingScheme(_ mutate: (inout ColorScheme) -> Void) {
         var scheme = profile.colorScheme(for: editingAppearance)
         mutate(&scheme)
-        if !scheme.name.hasSuffix(" (Custom)") {
-            scheme.name += " (Custom)"
-        }
         setScheme(scheme, for: editingAppearance)
     }
 
@@ -435,6 +499,164 @@ private struct ProfileColorsTab: View {
             profile.darkScheme = scheme
         }
         profile.syncLegacyColorScheme()
+    }
+
+    private var isEditingSchemeModified: Bool {
+        isSchemeModified(profile.colorScheme(for: editingAppearance), for: editingAppearance)
+    }
+
+    private var isEditingSchemeUserCreated: Bool {
+        isSchemeUserCreated(profile.colorScheme(for: editingAppearance))
+    }
+
+    private func canonicalScheme(for scheme: ColorScheme, appearance: AppearanceVariant) -> ColorScheme? {
+        if let custom = customScheme(named: scheme.name) {
+            return custom.withOrigin(.user)
+        }
+        guard scheme.origin != .user else { return nil }
+
+        let builtIns = ColorScheme.builtIns(for: appearance)
+        if let builtIn = builtIns.first(where: { $0.name == scheme.name }) {
+            return builtIn
+        }
+        if let baseName = scheme.legacyCustomBaseName,
+           let builtIn = builtIns.first(where: { $0.name == baseName }) {
+            return builtIn
+        }
+        return nil
+    }
+
+    private func isSchemeModified(_ scheme: ColorScheme, for appearance: AppearanceVariant) -> Bool {
+        guard let canonical = canonicalScheme(for: scheme, appearance: appearance) else { return false }
+        return !scheme.hasSameColors(as: canonical)
+    }
+
+    private func isSchemeUserCreated(_ scheme: ColorScheme) -> Bool {
+        scheme.origin == .user || customScheme(named: scheme.name) != nil
+    }
+
+    private func customScheme(named name: String) -> ColorScheme? {
+        store.settings.customSchemes.first { $0.name == name }
+    }
+
+    private func customSchemeIndex(named name: String) -> Int? {
+        store.settings.customSchemes.firstIndex { $0.name == name }
+    }
+
+    private func existingSchemeNames(excluding excluded: String? = nil) -> Set<String> {
+        var names = Set(
+            ColorScheme.builtIns(for: .light).map(\.name)
+                + ColorScheme.builtIns(for: .dark).map(\.name)
+                + store.settings.customSchemes.map(\.name)
+        )
+        if let excluded { names.remove(excluded) }
+        return names
+    }
+
+    private func revertEditingScheme() {
+        let scheme = profile.colorScheme(for: editingAppearance)
+        guard let canonical = canonicalScheme(for: scheme, appearance: editingAppearance) else { return }
+        setScheme(canonical, for: editingAppearance)
+    }
+
+    private func duplicateEditingScheme() {
+        var duplicate = profile.colorScheme(for: editingAppearance)
+        duplicate.origin = .user
+        let baseName = duplicate.legacyCustomBaseName ?? duplicate.name
+        duplicate.name = ColorScheme.uniqueName("\(baseName) Copy", avoiding: existingSchemeNames())
+        store.settings.customSchemes.append(duplicate)
+        setScheme(duplicate, for: editingAppearance)
+    }
+
+    private func renameEditingScheme() {
+        let scheme = profile.colorScheme(for: editingAppearance)
+        guard isSchemeUserCreated(scheme) else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Rename Color Scheme"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+
+        let field = NSTextField(string: scheme.name)
+        field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
+        alert.accessoryView = field
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        renameUserScheme(named: scheme.name, to: field.stringValue)
+    }
+
+    private func renameUserScheme(named oldName: String, to proposedName: String) {
+        let newName = proposedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty else {
+            schemeError = "Color scheme names cannot be empty."
+            return
+        }
+        guard !existingSchemeNames(excluding: oldName).contains(newName) else {
+            schemeError = "A color scheme named “\(newName)” already exists."
+            return
+        }
+
+        if let index = customSchemeIndex(named: oldName) {
+            store.settings.customSchemes[index].name = newName
+            store.settings.customSchemes[index].origin = .user
+            renameUserSchemeReferences(named: oldName, to: newName)
+        } else {
+            var renamed = profile.colorScheme(for: editingAppearance)
+            renamed.name = newName
+            renamed.origin = .user
+            setScheme(renamed, for: editingAppearance)
+        }
+    }
+
+    private func renameUserSchemeReferences(named oldName: String, to newName: String) {
+        for index in store.settings.profiles.indices {
+            if store.settings.profiles[index].lightScheme.name == oldName {
+                store.settings.profiles[index].lightScheme.name = newName
+                store.settings.profiles[index].lightScheme.origin = .user
+            }
+            if store.settings.profiles[index].darkScheme.name == oldName {
+                store.settings.profiles[index].darkScheme.name = newName
+                store.settings.profiles[index].darkScheme.origin = .user
+            }
+            store.settings.profiles[index].syncLegacyColorScheme()
+        }
+    }
+
+    private func deleteEditingScheme() {
+        let scheme = profile.colorScheme(for: editingAppearance)
+        guard isSchemeUserCreated(scheme) else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Delete Color Scheme?"
+        alert.informativeText = "Profiles using “\(scheme.name)” will switch back to the default scheme for each appearance."
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .warning
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if let index = customSchemeIndex(named: scheme.name) {
+            store.settings.customSchemes.remove(at: index)
+        }
+        resetUserSchemeReferences(named: scheme.name)
+    }
+
+    private func resetUserSchemeReferences(named name: String) {
+        for index in store.settings.profiles.indices {
+            if store.settings.profiles[index].lightScheme.name == name {
+                store.settings.profiles[index].lightScheme = defaultScheme(for: .light)
+            }
+            if store.settings.profiles[index].darkScheme.name == name {
+                store.settings.profiles[index].darkScheme = defaultScheme(for: .dark)
+            }
+            store.settings.profiles[index].syncLegacyColorScheme()
+        }
+    }
+
+    private func defaultScheme(for appearance: AppearanceVariant) -> ColorScheme {
+        switch appearance {
+        case .light: return ColorScheme.defaultLight
+        case .dark: return ColorScheme.defaultDark
+        }
     }
 
     private func ansiGrid(range: Range<Int>, title: String) -> some View {
@@ -458,18 +680,8 @@ private struct ProfileColorsTab: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             var scheme = try ColorScheme.fromITermColors(url: url)
-            let names = Set(
-                ColorScheme.builtIns(for: .light).map(\.name)
-                + ColorScheme.builtIns(for: .dark).map(\.name)
-                + store.settings.customSchemes.map(\.name)
-            )
-            var name = scheme.name
-            var i = 1
-            while names.contains(name) {
-                i += 1
-                name = "\(scheme.name) \(i)"
-            }
-            scheme.name = name
+            scheme.origin = .user
+            scheme.name = ColorScheme.uniqueName(scheme.name, avoiding: existingSchemeNames())
             store.settings.customSchemes.append(scheme)
             setScheme(scheme, for: editingAppearance)
         } catch {

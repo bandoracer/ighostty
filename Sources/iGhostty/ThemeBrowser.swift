@@ -5,9 +5,9 @@ import AppKit
 
 /// A searchable, grouped gallery for picking a color scheme. Replaces the flat
 /// dropdown that listed all ~500 schemes by name with no preview. Schemes are
-/// grouped into Custom / Featured / Ghostty Catalog, rendered as live swatch
-/// cards, filtered by an instant search field, and applied live on selection
-/// (with Cancel to revert to the scheme that was active when the sheet opened).
+/// grouped into user-created and built-in sections, rendered as live swatch cards,
+/// filtered by an instant search field, and applied live on selection (with Cancel
+/// to revert to the scheme that was active when the sheet opened).
 struct ThemeBrowser: View {
     let appearance: AppearanceVariant
     let customSchemes: [ColorScheme]
@@ -16,6 +16,7 @@ struct ThemeBrowser: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var selectedName: String
+    @State private var selectedID: String
     private let original: ColorScheme
 
     init(
@@ -29,6 +30,7 @@ struct ThemeBrowser: View {
         self.onApply = onApply
         self.original = current
         _selectedName = State(initialValue: current.name)
+        _selectedID = State(initialValue: current.id)
     }
 
     private let columns = [GridItem(.adaptive(minimum: 172, maximum: 240), spacing: 12)]
@@ -47,17 +49,17 @@ struct ThemeBrowser: View {
 
         var result: [SchemeGroup] = []
 
-        let custom = match(customSchemes)
-        if !custom.isEmpty { result.append(SchemeGroup(id: "custom", title: "Custom", schemes: custom)) }
+        let custom = match(customSchemes.map { $0.withOrigin(.user) })
+        if !custom.isEmpty { result.append(SchemeGroup(id: "custom", title: "User Created", schemes: custom)) }
 
         let featured = match(ColorScheme.featuredBuiltIns(for: appearance))
-        if !featured.isEmpty { result.append(SchemeGroup(id: "featured", title: "Featured", schemes: featured)) }
+        if !featured.isEmpty { result.append(SchemeGroup(id: "featured", title: "Built In: Featured", schemes: featured)) }
 
         // Catalog entries that duplicate a Custom/Featured name are dropped so a
         // theme appears once (matching the precedence the flat list used).
         let shown = Set(custom.map(\.name)).union(featured.map(\.name))
         let catalog = match(ColorScheme.catalogSchemes(for: appearance)).filter { !shown.contains($0.name) }
-        if !catalog.isEmpty { result.append(SchemeGroup(id: "catalog", title: "Ghostty Catalog", schemes: catalog)) }
+        if !catalog.isEmpty { result.append(SchemeGroup(id: "catalog", title: "Built In: Ghostty Catalog", schemes: catalog)) }
 
         return result
     }
@@ -145,7 +147,7 @@ struct ThemeBrowser: View {
                                     Button {
                                         select(scheme)
                                     } label: {
-                                        ThemeCard(scheme: scheme, isSelected: scheme.name == selectedName)
+                                        ThemeCard(scheme: scheme, isSelected: scheme.id == selectedID)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -204,6 +206,7 @@ struct ThemeBrowser: View {
 
     private func select(_ scheme: ColorScheme) {
         selectedName = scheme.name
+        selectedID = scheme.id
         onApply(scheme)
     }
 }
@@ -231,6 +234,12 @@ struct ThemeCard: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 0)
+                Text(scheme.origin == .user ? "User" : "Built-in")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption)

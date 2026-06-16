@@ -33,8 +33,21 @@ struct TermColor: Codable, Equatable, Hashable {
 
 // MARK: - Color schemes
 
+enum ColorSchemeOrigin: String, Codable, Equatable, Hashable {
+    case builtIn
+    case user
+
+    var label: String {
+        switch self {
+        case .builtIn: return "Built-in"
+        case .user: return "User-created"
+        }
+    }
+}
+
 struct ColorScheme: Codable, Equatable, Hashable, Identifiable {
     var name: String
+    var origin: ColorSchemeOrigin = .builtIn
     /// Exactly 16 entries: the standard + bright ANSI colors.
     var ansi: [TermColor]
     var foreground: TermColor
@@ -43,10 +56,75 @@ struct ColorScheme: Codable, Equatable, Hashable, Identifiable {
     var cursorText: TermColor
     var selection: TermColor
 
-    var id: String { name }
+    var id: String { "\(origin.rawValue):\(name)" }
 
     var isLight: Bool {
         (0.299 * background.r + 0.587 * background.g + 0.114 * background.b) > 0.6
+    }
+}
+
+extension ColorScheme {
+    private enum CodingKeys: String, CodingKey {
+        case name, origin, ansi, foreground, background, cursor, cursorText, selection
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decode(String.self, forKey: .name)
+        origin = (try? c.decodeIfPresent(ColorSchemeOrigin.self, forKey: .origin)) ?? .builtIn
+        ansi = try c.decode([TermColor].self, forKey: .ansi)
+        foreground = try c.decode(TermColor.self, forKey: .foreground)
+        background = try c.decode(TermColor.self, forKey: .background)
+        cursor = try c.decode(TermColor.self, forKey: .cursor)
+        cursorText = try c.decode(TermColor.self, forKey: .cursorText)
+        selection = try c.decode(TermColor.self, forKey: .selection)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(origin, forKey: .origin)
+        try c.encode(ansi, forKey: .ansi)
+        try c.encode(foreground, forKey: .foreground)
+        try c.encode(background, forKey: .background)
+        try c.encode(cursor, forKey: .cursor)
+        try c.encode(cursorText, forKey: .cursorText)
+        try c.encode(selection, forKey: .selection)
+    }
+
+    func hasSameColors(as other: ColorScheme) -> Bool {
+        ansi == other.ansi
+            && foreground == other.foreground
+            && background == other.background
+            && cursor == other.cursor
+            && cursorText == other.cursorText
+            && selection == other.selection
+    }
+
+    func withOrigin(_ origin: ColorSchemeOrigin) -> ColorScheme {
+        var copy = self
+        copy.origin = origin
+        return copy
+    }
+
+    var legacyCustomBaseName: String? {
+        let suffix = " (Custom)"
+        guard name.hasSuffix(suffix) else { return nil }
+        return String(name.dropLast(suffix.count))
+    }
+
+    static func uniqueName(_ baseName: String, avoiding existingNames: Set<String>) -> String {
+        let trimmed = baseName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = trimmed.isEmpty ? "Untitled Scheme" : trimmed
+        guard existingNames.contains(base) else { return base }
+
+        var index = 2
+        var candidate = "\(base) \(index)"
+        while existingNames.contains(candidate) {
+            index += 1
+            candidate = "\(base) \(index)"
+        }
+        return candidate
     }
 }
 
@@ -245,6 +323,7 @@ extension ColorScheme {
         let fg = color("Foreground Color") ?? TermColor(hex: "BFBFBF")
         return ColorScheme(
             name: url.deletingPathExtension().lastPathComponent,
+            origin: .user,
             ansi: ansi,
             foreground: fg,
             background: bg,
@@ -615,12 +694,29 @@ struct AppSettings: Codable, Equatable {
     @discardableResult
     mutating func migrateLegacyDefaults() -> Bool {
         var changed = false
+        for index in customSchemes.indices {
+            if customSchemes[index].origin != .user {
+                customSchemes[index].origin = .user
+                changed = true
+            }
+        }
+
+        let customNames = Set(customSchemes.map(\.name))
+        func migrateSchemeOrigin(_ scheme: inout ColorScheme) -> Bool {
+            guard customNames.contains(scheme.name), scheme.origin != .user else { return false }
+            scheme.origin = .user
+            return true
+        }
+
         for index in profiles.indices {
             let term = profiles[index].termVariable.trimmingCharacters(in: .whitespacesAndNewlines)
             if term == TerminalTerm.legacyDefault {
                 profiles[index].termVariable = TerminalTerm.ghostty
                 changed = true
             }
+            if migrateSchemeOrigin(&profiles[index].scheme) { changed = true }
+            if migrateSchemeOrigin(&profiles[index].lightScheme) { changed = true }
+            if migrateSchemeOrigin(&profiles[index].darkScheme) { changed = true }
         }
         return changed
     }
