@@ -302,17 +302,14 @@ enum GhosttyShellIntegration {
 }
 
 extension ColorScheme {
-    static var ghosttyCatalogLight: [ColorScheme] {
-        ghosttyCatalog.filter(\.isLight)
-    }
+    // Computed once and cached: the catalog is ~485 themes and was previously
+    // rebuilt on every access (e.g. every settings render / search keystroke).
+    static let ghosttyCatalogLight: [ColorScheme] = ghosttyCatalog.filter(\.isLight)
 
-    static var ghosttyCatalogDark: [ColorScheme] {
-        ghosttyCatalog.filter { !$0.isLight }
-    }
+    static let ghosttyCatalogDark: [ColorScheme] = ghosttyCatalog.filter { !$0.isLight }
 
-    private static var ghosttyCatalog: [ColorScheme] {
+    private static let ghosttyCatalog: [ColorScheme] =
         GhosttyThemeCatalog.allThemes.compactMap { ColorScheme(ghosttyTheme: $0) }
-    }
 
     init?(ghosttyTheme theme: GhosttyThemeDefinition) {
         let defaultANSI = ColorScheme.defaultDark.ansi

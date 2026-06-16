@@ -312,16 +312,17 @@ private struct ProfileColorsTab: View {
     @EnvironmentObject var store: SettingsStore
     @State private var importError: String?
     @State private var editingAppearance: AppearanceVariant = .dark
+    @State private var browsingAppearance: AppearanceVariant?
 
     var body: some View {
         Form {
             Section {
-                schemePicker(for: .light)
-                schemePicker(for: .dark)
+                schemeChooser(for: .light)
+                schemeChooser(for: .dark)
             } header: {
                 Text("Schemes")
             } footer: {
-                Text("Match System swaps between these automatically. Manual Light or Dark uses the matching scheme.")
+                Text("Click a preview to browse themes. Match System swaps between these automatically; manual Light or Dark uses the matching scheme.")
                     .foregroundStyle(.secondary)
             }
 
@@ -352,36 +353,43 @@ private struct ProfileColorsTab: View {
         } message: {
             Text(importError ?? "")
         }
-    }
-
-    private func schemePicker(for appearance: AppearanceVariant) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Picker("\(appearance.label) mode", selection: schemeSelection(for: appearance)) {
-                ForEach(pickerSchemes(for: appearance)) { Text($0.name).tag($0.name) }
-            }
-            SchemePreview(scheme: profile.colorScheme(for: appearance), fontName: profile.fontName, fontSize: profile.fontSize)
+        .sheet(item: $browsingAppearance) { appearance in
+            ThemeBrowser(
+                appearance: appearance,
+                current: profile.colorScheme(for: appearance),
+                customSchemes: store.settings.customSchemes,
+                onApply: { setScheme($0, for: appearance) }
+            )
         }
-        .padding(.vertical, 2)
     }
 
-    private func pickerSchemes(for appearance: AppearanceVariant) -> [ColorScheme] {
-        var schemes = store.allSchemes(for: appearance)
-        let current = profile.colorScheme(for: appearance)
-        if !schemes.contains(where: { $0.name == current.name }) {
-            schemes.append(current)
-        }
-        return schemes
-    }
-
-    private func schemeSelection(for appearance: AppearanceVariant) -> Binding<String> {
-        Binding(
-            get: { profile.colorScheme(for: appearance).name },
-            set: { name in
-                if let found = store.allSchemes(for: appearance).first(where: { $0.name == name }) {
-                    setScheme(found, for: appearance)
+    /// A clickable preview of the current scheme that opens the theme browser.
+    /// Replaces the old flat dropdown of ~500 scheme names.
+    private func schemeChooser(for appearance: AppearanceVariant) -> some View {
+        let scheme = profile.colorScheme(for: appearance)
+        return Button {
+            browsingAppearance = appearance
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Text("\(appearance.label) mode")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(scheme.name)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
+                SchemePreview(scheme: scheme, fontName: profile.fontName, fontSize: profile.fontSize)
             }
-        )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Browse \(appearance.label.lowercased()) themes")
+        .padding(.vertical, 2)
     }
 
     private func colorRow(_ label: String, _ keyPath: WritableKeyPath<ColorScheme, TermColor>) -> some View {

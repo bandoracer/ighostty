@@ -197,6 +197,22 @@ extension ColorScheme {
     private static let lightBuiltIns: [ColorScheme] = codexThemePairs.map(\.light)
     private static let darkBuiltIns: [ColorScheme] = codexThemePairs.map(\.dark)
 
+    /// Curated, hand-tuned theme pairs shipped with iGhostty, for the given appearance.
+    static func featuredBuiltIns(for appearance: AppearanceVariant) -> [ColorScheme] {
+        switch appearance {
+        case .light: return lightBuiltIns
+        case .dark: return darkBuiltIns
+        }
+    }
+
+    /// The generated Ghostty theme catalog filtered to the given appearance.
+    static func catalogSchemes(for appearance: AppearanceVariant) -> [ColorScheme] {
+        switch appearance {
+        case .light: return ghosttyCatalogLight
+        case .dark: return ghosttyCatalogDark
+        }
+    }
+
     private static func uniqued(_ schemes: [ColorScheme]) -> [ColorScheme] {
         var names = Set<String>()
         return schemes.filter { names.insert($0.name).inserted }
