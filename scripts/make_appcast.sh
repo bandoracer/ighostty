@@ -10,6 +10,8 @@ UPDATES_DIR="${SPARKLE_UPDATES_DIR:-dist/sparkle-updates}"
 TOOLS_DIR="${SPARKLE_TOOLS_DIR:-.build/artifacts/sparkle/Sparkle/bin}"
 ACCOUNT="${SPARKLE_KEY_ACCOUNT:-dev.ighostty.app}"
 DOWNLOAD_PREFIX="${SPARKLE_DOWNLOAD_URL_PREFIX:-https://github.com/bandoracer/ighostty/releases/download/v${VERSION}/}"
+MAXIMUM_VERSIONS="${SPARKLE_MAXIMUM_VERSIONS:-1}"
+MAXIMUM_DELTAS="${SPARKLE_MAXIMUM_DELTAS:-1}"
 case "$DOWNLOAD_PREFIX" in
   */) ;;
   *) DOWNLOAD_PREFIX="${DOWNLOAD_PREFIX}/" ;;
@@ -42,6 +44,8 @@ fi
   --account "$ACCOUNT" \
   --download-url-prefix "$DOWNLOAD_PREFIX" \
   --release-notes-url-prefix "$DOWNLOAD_PREFIX" \
+  --maximum-versions "$MAXIMUM_VERSIONS" \
+  --maximum-deltas "$MAXIMUM_DELTAS" \
   "$UPDATES_DIR"
 
 cp "$UPDATES_DIR/appcast.xml" dist/appcast.xml

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-16
+
+### Added
+
+- Color scheme management now distinguishes built-in and user-created schemes,
+  flags schemes modified from their source, and adds revert, duplicate, rename,
+  and delete actions for profile color schemes.
+
 ### Changed
 
 - Profiles whose `TERM` is still the legacy `xterm-256color` default are
@@ -52,7 +60,8 @@ Initial release.
 - Always-on background service with login-item support.
 - Built-in updates via Sparkle 2.
 
-[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/bandoracer/ighostty/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/bandoracer/ighostty/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/bandoracer/ighostty/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bandoracer/ighostty/compare/v1.0.0...v1.0.1
