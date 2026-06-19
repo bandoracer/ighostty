@@ -184,47 +184,22 @@ func svgPaths(from url: URL) throws -> [SVGPath] {
 }
 
 func renderSVGMask(from source: URL, to destination: URL, size: Int = 2000) throws {
-    let paths = try svgPaths(from: source)
-    guard let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: size,
-        pixelsHigh: size,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-    ) else {
-        throw NSError(domain: "iGhosttyIcon", code: 1)
-    }
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/sips")
+    process.arguments = ["-s", "format", "png", source.path, "--out", destination.path]
+    let stderr = Pipe()
+    process.standardError = stderr
+    process.standardOutput = Pipe()
+    try process.run()
+    process.waitUntilExit()
 
-    NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-    NSColor.clear.setFill()
-    NSRect(x: 0, y: 0, width: size, height: size).fill()
-
-    let combined = NSBezierPath()
-    for item in paths {
-        let path = SVGPathParser(item.data).parse()
-        if let transform = item.transform {
-            path.transform(using: transform)
-        }
-        var placement = AffineTransform()
-        placement.translate(x: 0, y: CGFloat(size))
-        placement.scale(x: CGFloat(size) / 2000, y: -CGFloat(size) / 2000)
-        path.transform(using: placement)
-        combined.append(path)
+    guard process.terminationStatus == 0 else {
+        let data = stderr.fileHandleForReading.readDataToEndOfFile()
+        let message = String(data: data, encoding: .utf8) ?? "sips failed"
+        throw NSError(domain: "iGhosttyIcon", code: Int(process.terminationStatus), userInfo: [
+            NSLocalizedDescriptionKey: message
+        ])
     }
-    NSColor.white.setFill()
-    combined.fill()
-    NSGraphicsContext.restoreGraphicsState()
-
-    guard let png = rep.representation(using: .png, properties: [:]) else {
-        throw NSError(domain: "iGhosttyIcon", code: 2)
-    }
-    try png.write(to: destination)
 }
 
 func rewriteLayers(in groups: inout [[String: Any]]) throws {
@@ -263,6 +238,9 @@ try rewriteLayers(in: &groups)
 root.removeValue(forKey: "features")
 for groupIndex in groups.indices {
     if groups[groupIndex].removeValue(forKey: "specular-specializations") != nil {
+        groups[groupIndex]["specular"] = true
+    }
+    if groups[groupIndex]["specular"] is String {
         groups[groupIndex]["specular"] = true
     }
 }

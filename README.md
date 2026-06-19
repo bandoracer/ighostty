@@ -181,6 +181,10 @@ swift build   # debug build through SwiftPM
 swift test    # focused Ghostty parity unit tests
 ```
 
+Release builds require a dated `CHANGELOG.md` section for the version in
+`Support/Info.plist`; `make appcast` fails if the release notes are missing.
+See [`docs/RELEASING.md`](docs/RELEASING.md) for the full publish procedure.
+
 Requires Xcode's Swift toolchain (Swift 5.9+ / macOS 13+). Dependencies resolve
 through SwiftPM; the terminal surface comes from
 [`libghostty-spm`](https://github.com/Lakr233/libghostty-spm).

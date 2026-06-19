@@ -43,6 +43,11 @@ make run         # build + open
 Other useful targets: `make dmg`, `make appcast`, `make icon`, `make clean`.
 See the [Makefile](Makefile) and the README's *Build & run* section for details.
 
+Release publishing is documented in [`docs/RELEASING.md`](docs/RELEASING.md).
+Every release build must move user-facing notes from `Unreleased` into a dated
+`CHANGELOG.md` version section before running `make release`; the appcast script
+uses that section as the Sparkle release notes and fails when it is missing.
+
 ## Project layout
 
 The application layer lives in `Sources/iGhostty/`. The README's *Architecture*
@@ -78,6 +83,7 @@ parity matrix lists the areas worth covering.
 - [ ] `swift build` and `swift test` pass locally.
 - [ ] New behavior has tests where practical.
 - [ ] Docs updated (README and/or `GHOSTTY_PARITY.md`) when behavior changes.
+- [ ] Release notes updated in `CHANGELOG.md` before any versioned build is pushed.
 - [ ] The change is focused; unrelated cleanups go in a separate PR.
 - [ ] No build artifacts, secrets, or personal paths are included.
 

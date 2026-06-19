@@ -3,229 +3,361 @@
     "refractivity",
     "specular-location"
   ],
-  "fill-specializations" : [
-    {
-      "value" : {
-        "automatic-gradient" : "display-p3:0.46683,0.47486,0.70727,1.00000"
-      }
-    },
-    {
-      "appearance" : "dark",
-      "value" : {
-        "automatic-gradient" : "display-p3:0.10124,0.10298,0.15339,1.00000"
-      }
-    }
-  ],
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.19567,0.13572,0.31556,1.00000",
+      "display-p3:0.04611,0.06663,0.16919,1.00000"
+    ]
+  },
   "groups" : [
     {
       "blend-mode-specializations" : [
         {
-          "appearance" : "dark",
-          "value" : "multiply"
+          "value" : "screen"
         },
         {
           "appearance" : "tinted",
-          "value" : "screen"
+          "value" : "plus-lighter"
         }
       ],
       "blur-material-specializations" : [
         {
-          "value" : 0.04
+          "value" : null
         },
         {
           "appearance" : "tinted",
-          "value" : 0
+          "value" : null
         }
       ],
       "layers" : [
         {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "automatic-gradient" : "display-p3:0.41312,0.27714,0.96783,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "automatic-gradient" : "display-p3:0.44951,0.45202,0.44700,1.00000"
-              }
-            },
-            {
-              "appearance" : "tinted",
-              "value" : {
-                "automatic-gradient" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+          "blend-mode" : "normal",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.86448,0.88902,0.97218,1.00000",
+              "display-p3:0.60814,0.65676,0.89749,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.5,
+                "y" : 1
+              },
+              "stop" : {
+                "x" : 0.5,
+                "y" : 0
               }
             }
-          ],
-          "image-name" : "prompt flat.svg",
-          "name" : "prompt flat",
-          "opacity-specializations" : [
-            {
-              "value" : 0.45
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0.75
-            },
-            {
-              "appearance" : "tinted",
-              "value" : 1
-            }
-          ],
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "carat.svg",
+          "name" : "carat",
+          "opacity" : 1,
           "position" : {
-            "scale" : 1,
+            "scale" : 0.9,
             "translation-in-points" : [
-              -51.13023401924943,
-              42
+              -79.09434692779337,
+              -31.425299999999993
             ]
           }
         }
       ],
-      "lighting" : "individual",
-      "refractivity-specializations" : [
+      "opacity-specializations" : [
         {
-          "value" : {
-            "depth" : 0.650859375,
-            "enabled" : true,
-            "strength" : 0.44734375
-          }
+          "value" : 0.8
         },
         {
           "appearance" : "tinted",
-          "value" : {
-            "depth" : 0.882421875,
-            "enabled" : true,
-            "strength" : 0.415234375
-          }
+          "value" : 0.89
         }
       ],
+      "refractivity" : {
+        "depth" : 0.49175781249999995,
+        "enabled" : true,
+        "strength" : 0.3993359375
+      },
       "shadow-specializations" : [
         {
           "value" : {
-            "kind" : "layer-color",
-            "opacity" : 0.92
+            "kind" : "neutral",
+            "opacity" : 1.2
           }
         },
         {
           "appearance" : "tinted",
           "value" : {
-            "kind" : "layer-color",
-            "opacity" : 1.8
+            "kind" : "neutral",
+            "opacity" : 3.04
           }
-        }
-      ],
-      "specular-specializations" : [
-        {
-          "value" : "inside"
-        },
-        {
-          "appearance" : "tinted",
-          "value" : "outside"
         }
       ],
       "translucency-specializations" : [
         {
           "value" : {
             "enabled" : true,
-            "value" : 1
+            "value" : 0.5
           }
         },
         {
           "appearance" : "tinted",
           "value" : {
             "enabled" : true,
-            "value" : 1
+            "value" : 0
           }
         }
       ]
     },
     {
-      "blur-material" : 0.1,
+      "blend-mode" : "overlay",
+      "blur-material" : 0.05,
+      "hidden" : false,
       "layers" : [
         {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "automatic-gradient" : "display-p3:0.97459,0.98875,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "automatic-gradient" : "display-p3:0.54804,0.42437,1.00000,1.00000"
-              }
-            }
-          ],
-          "image-name" : "ghost flat.svg",
-          "name" : "ghost flat",
-          "opacity-specializations" : [
-            {
-              "value" : 1
-            },
-            {
-              "appearance" : "dark",
-              "value" : 0.76
-            },
-            {
-              "appearance" : "tinted",
-              "value" : 0.69
-            }
-          ],
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:1.00000,0.21583,1.00000,0.40000",
+              "srgb:1.00000,0.84925,1.00000,0.30000"
+            ]
+          },
+          "glass" : true,
+          "image-name" : "ghost 5.svg",
+          "name" : "ghost 5",
           "position" : {
-            "scale" : 1,
+            "scale" : 0.9,
             "translation-in-points" : [
-              -51.13023401924943,
-              42
+              0,
+              0
             ]
           }
         }
       ],
       "opacity" : 1,
-      "position" : {
-        "scale" : 0.77,
-        "translation-in-points" : [
-          0,
-          0
-        ]
+      "refractivity" : {
+        "depth" : 1,
+        "enabled" : true,
+        "strength" : 0.0541796875
       },
-      "refractivity-specializations" : [
+      "shadow-specializations" : [
         {
           "value" : {
-            "depth" : 0.16519531250000014,
-            "enabled" : true,
-            "strength" : 0.626640625
+            "kind" : "neutral",
+            "opacity" : 0.4
           }
         },
         {
           "appearance" : "tinted",
           "value" : {
-            "depth" : 0.8952734375,
+            "kind" : "neutral",
+            "opacity" : 1.92
+          }
+        }
+      ],
+      "specular" : "outside",
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.6
+      }
+    },
+    {
+      "blend-mode" : "overlay",
+      "blur-material-specializations" : [
+        {
+          "value" : 0.1
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.05
+        }
+      ],
+      "layers" : [
+        {
+          "blend-mode" : "screen",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.87000,0.70000,1.00000,0.30000",
+              "srgb:0.87500,0.70000,1.00000,0.00000"
+            ]
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "ghost 4.svg",
+          "name" : "ghost 4",
+          "position" : {
+            "scale" : 0.9,
+            "translation-in-points" : [
+              -17.4749994,
+              1
+            ]
+          }
+        }
+      ],
+      "opacity-specializations" : [
+        {
+          "value" : 0.2
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.1
+        }
+      ],
+      "refractivity" : {
+        "depth" : 1,
+        "enabled" : true,
+        "strength" : -0.0484765625
+      },
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 0
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 3.12
+          }
+        }
+      ],
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    },
+    {
+      "blend-mode" : "normal",
+      "blur-material-specializations" : [
+        {
+          "value" : null
+        },
+        {
+          "appearance" : "tinted",
+          "value" : null
+        }
+      ],
+      "hidden" : false,
+      "layers" : [
+        {
+          "blend-mode" : "overlay",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.75000,0.70000,1.00000,0.30000",
+                  "srgb:0.16667,0.00000,1.00000,0.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.79167,0.75000,1.00000,0.30000",
+                  "srgb:0.16667,0.00000,1.00000,0.00000"
+                ]
+              }
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "ghost 3.svg",
+          "name" : "ghost 3",
+          "position" : {
+            "scale" : 0.9,
+            "translation-in-points" : [
+              -9.832749299999705,
+              5.55113422251452e-06
+            ]
+          }
+        },
+        {
+          "blend-mode" : "overlay",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.70000,0.76000,1.00000,0.30000",
+              "srgb:0.00000,0.25000,1.00000,0.00000"
+            ]
+          },
+          "glass-specializations" : [
+            {
+              "value" : false
+            },
+            {
+              "appearance" : "dark",
+              "value" : true
+            },
+            {
+              "appearance" : "tinted",
+              "value" : true
+            }
+          ],
+          "hidden" : false,
+          "image-name" : "ghost 2.svg",
+          "name" : "ghost 2",
+          "position" : {
+            "scale" : 0.9,
+            "translation-in-points" : [
+              56.5017957,
+              0.9979949511341601
+            ]
+          }
+        },
+        {
+          "blend-mode" : "screen",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.70000,0.87000,1.00000,0.30000",
+              "srgb:0.00000,0.66667,1.00000,0.00000"
+            ]
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "ghost 1.svg",
+          "name" : "ghost 1",
+          "position" : {
+            "scale" : 0.9,
+            "translation-in-points" : [
+              11.896296296296214,
+              22.309377051134334
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "name" : "Group",
+      "opacity-specializations" : [
+        {
+          "appearance" : "tinted",
+          "value" : 0.8
+        }
+      ],
+      "refractivity-specializations" : [
+        {
+          "value" : {
+            "depth" : 0.45578125,
+            "enabled" : false,
+            "strength" : 0.0784375
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "depth" : 0.45578125,
             "enabled" : true,
-            "strength" : 0.4912890625
+            "strength" : 0.0784375
           }
         }
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 1.48
+        "opacity" : 0.4
       },
       "specular" : true,
-      "translucency-specializations" : [
-        {
-          "value" : {
-            "enabled" : true,
-            "value" : 0.81
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "enabled" : true,
-            "value" : 0.64
-          }
-        }
-      ]
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
     }
   ],
   "supported-platforms" : {
