@@ -38,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         }
         if !backgroundLaunch {
             terminateBackgroundPeerApplications()
+            DispatchQueue.global(qos: .utility).async {
+                LoginItemService.refreshRegistrationIfNeeded()
+            }
         }
 
         applyTheme()
@@ -109,6 +112,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// otherwise it quits. Deliberately avoids NSApp.terminate: AppKit's
     /// pre-quit document review can wedge in a nested run loop.
     @objc func quitRequested(_ sender: Any?) {
+        NSLog(
+            "iGhostty quit requested backgroundMode=%@ windows=%d",
+            keepsDropdownAvailableInBackground ? "true" : "false",
+            windowControllers.count
+        )
         if keepsDropdownAvailableInBackground {
             _ = backgroundQuit()
         } else {
@@ -119,11 +127,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// ⌥⌘Q — actually quit, taking the drop-down terminal and any peer
     /// background service with it.
     @objc func quitCompletely(_ sender: Any?) {
+        NSLog("iGhostty full quit requested")
         guard confirmFullShutdown(actionTitle: "Quit iGhostty completely?", buttonTitle: "Quit") else { return }
         shutdownAndExit(terminatePeers: true)
     }
 
     @objc func restartCompletely(_ sender: Any?) {
+        NSLog("iGhostty restart requested")
         guard confirmFullShutdown(actionTitle: "Restart iGhostty completely?", buttonTitle: "Restart") else { return }
         launchSelfAfterExit()
         shutdownAndExit(terminatePeers: true)
@@ -180,8 +190,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// drop-down service alive when background mode is enabled; explicit full
     /// quit/restart uses `shutdownAndExit` directly.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        NSLog(
+            "iGhostty applicationShouldTerminate backgroundMode=%@ windows=%d",
+            keepsDropdownAvailableInBackground ? "true" : "false",
+            windowControllers.count
+        )
         if keepsDropdownAvailableInBackground {
             _ = backgroundQuit(showDockQuitNotice: true)
+            NSLog("iGhostty applicationShouldTerminate cancelled for background hotkey service")
             return .terminateCancel
         }
 
@@ -195,6 +211,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// drop the Dock icon, keep the process (and the drop-down sessions) alive.
     private func backgroundQuit(showDockQuitNotice: Bool = false) -> Bool {
         let running = windowControllers.reduce(0) { $0 + $1.tabVC.busySessionCount }
+        NSLog(
+            "iGhostty background quit requested runningSessions=%d settingsWindowVisible=%@ notice=%@",
+            running,
+            settingsWindowController?.window?.isVisible == true ? "true" : "false",
+            showDockQuitNotice ? "true" : "false"
+        )
         if store.settings.ui.confirmQuit, running > 0 {
             let alert = NSAlert()
             alert.messageText = "Close all terminal windows?"
@@ -585,10 +607,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     }
 
     func showSettings(tabIndex: Int?) {
+        NSLog(
+            "iGhostty settings open requested tab=%@ activationPolicy=%@",
+            tabIndex.map(String.init) ?? "nil",
+            String(describing: NSApp.activationPolicy())
+        )
+        ensureRegularActivation()
         if settingsWindowController == nil {
             settingsWindowController = SettingsWindowController(store: store)
         }
         settingsWindowController?.show(tabIndex: tabIndex)
+        NSLog(
+            "iGhostty settings window shown visible=%@ key=%@ activationPolicy=%@",
+            settingsWindowController?.window?.isVisible == true ? "true" : "false",
+            settingsWindowController?.window?.isKeyWindow == true ? "true" : "false",
+            String(describing: NSApp.activationPolicy())
+        )
     }
 
     @objc func showAbout(_ sender: Any?) {

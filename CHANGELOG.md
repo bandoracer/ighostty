@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-06-24
+
+### Fixed
+
+- Start at login now repairs stale ServiceManagement launch constraints after
+  an app signing change, preventing reboot/login crashes before iGhostty code
+  can run.
+
+### Changed
+
+- CI now runs on the Swift 6 macOS runner used by current release builds.
+
 ## [1.0.5] - 2026-06-19
 
 ### Added
@@ -75,7 +87,8 @@ Initial release.
 - Always-on background service with login-item support.
 - Built-in updates via Sparkle 2.
 
-[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/bandoracer/ighostty/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/bandoracer/ighostty/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/bandoracer/ighostty/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/bandoracer/ighostty/compare/v1.0.2...v1.0.3
