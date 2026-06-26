@@ -476,6 +476,11 @@ final class TerminalSessionView: NSView,
         ptySession?.send(Data([0x0c]))
     }
 
+    func resetTerminalState() {
+        guard termView.performBindingAction("reset") else { return }
+        ptySession?.send(Data([0x0c]))
+    }
+
     func setDesaturated(_ desaturated: Bool, amount: Double) {
         inactiveSaturation = desaturated ? 1 - min(max(amount, 0), 1) : 1
         applySaturation(inactiveSaturation, to: termView)

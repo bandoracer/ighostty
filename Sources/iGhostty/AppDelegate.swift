@@ -534,7 +534,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     /// ⌘R — reset terminal emulator state, matching iTerm2's default.
     @objc func resetTerminal(_ sender: Any?) {
-        keyTabViewController()?.activeSession?.performGhosttyAction("reset")
+        keyTabViewController()?.activeSession?.resetTerminalState()
     }
 
     @objc func jumpToPreviousPrompt(_ sender: Any?) {

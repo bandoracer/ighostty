@@ -34,8 +34,11 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertEqual(resetItem.keyEquivalent, "r")
         XCTAssertEqual(resetItem.keyEquivalentModifierMask.intersection([.command, .option, .control, .shift]), [.command])
 
-        let source = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/AppDelegate.swift"))
-        XCTAssertTrue(source.contains("performGhosttyAction(\"reset\")"))
+        let appDelegate = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/AppDelegate.swift"))
+        let terminalSession = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/TerminalSessionView.swift"))
+        XCTAssertTrue(appDelegate.contains("resetTerminalState()"))
+        XCTAssertTrue(terminalSession.contains("performBindingAction(\"reset\")"))
+        XCTAssertTrue(terminalSession.contains("Data([0x0c])"))
     }
 
     func testGhosttyResourcesValidateFromSourceTree() {
