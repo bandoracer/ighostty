@@ -478,7 +478,7 @@ final class TerminalSessionView: NSView,
 
     func resetTerminalState() {
         guard termView.performBindingAction("reset") else { return }
-        ptySession?.send(Data([0x0c]))
+        _ = termView.performBindingAction("clear_screen")
     }
 
     func setDesaturated(_ desaturated: Bool, amount: Double) {
