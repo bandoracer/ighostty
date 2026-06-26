@@ -21,9 +21,12 @@ final class TerminalTabViewController: NSViewController, TerminalSessionViewDele
     private var mouseMonitor: Any?
     private var keyMonitor: Any?
 
-    init(profile: Profile, initialDirectory: String?) {
+    private let rootViewFactory: (() -> NSView)?
+
+    init(profile: Profile, initialDirectory: String?, rootViewFactory: (() -> NSView)? = nil) {
         self.initialProfile = profile
         self.initialDirectory = initialDirectory
+        self.rootViewFactory = rootViewFactory
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -37,7 +40,7 @@ final class TerminalTabViewController: NSViewController, TerminalSessionViewDele
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 500))
+        view = rootViewFactory?() ?? NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 500))
         view.wantsLayer = true
     }
 

@@ -147,6 +147,192 @@ private final class DropdownPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+private final class DropdownSurfaceView: NSView {
+    private let maskLayer = CAShapeLayer()
+    private let outlineLayer = CAShapeLayer()
+    private var backingScale: CGFloat = 1
+
+    var fillColor: NSColor = .windowBackgroundColor {
+        didSet { layer?.backgroundColor = fillColor.cgColor }
+    }
+
+    var outlineColor: NSColor = .separatorColor {
+        didSet { outlineLayer.strokeColor = outlineColor.cgColor }
+    }
+
+    var cornerRadius: CGFloat = 16 {
+        didSet { updateShape() }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        setupLayer()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func makeBackingLayer() -> CALayer {
+        CALayer()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        configureScale(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1)
+    }
+
+    override func layout() {
+        super.layout()
+        updateShape()
+    }
+
+    func configure(fillColor: NSColor, outlineColor: NSColor, cornerRadius: CGFloat, scale: CGFloat) {
+        self.fillColor = fillColor
+        self.outlineColor = outlineColor
+        self.cornerRadius = cornerRadius
+        configureScale(scale)
+    }
+
+    private func setupLayer() {
+        guard let layer else { return }
+        layer.backgroundColor = fillColor.cgColor
+        layer.mask = maskLayer
+        layer.addSublayer(outlineLayer)
+
+        maskLayer.fillColor = NSColor.black.cgColor
+        outlineLayer.fillColor = nil
+        outlineLayer.strokeColor = outlineColor.cgColor
+        outlineLayer.lineJoin = .round
+        outlineLayer.lineCap = .round
+        outlineLayer.zPosition = 1
+    }
+
+    private func configureScale(_ scale: CGFloat) {
+        backingScale = max(scale, 1)
+        layer?.contentsScale = backingScale
+        maskLayer.contentsScale = backingScale
+        outlineLayer.contentsScale = backingScale
+        outlineLayer.lineWidth = 1 / backingScale
+        updateShape()
+    }
+
+    private func updateShape() {
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let radius = min(cornerRadius, bounds.width / 2, bounds.height / 2)
+        let fullPath = Self.bottomRoundedPath(in: bounds, radius: radius)
+        let inset = outlineLayer.lineWidth / 2
+        let outlineBounds = bounds.insetBy(dx: inset, dy: inset)
+        let outlinePath = Self.bottomOutlinePath(
+            in: outlineBounds,
+            radius: max(0, radius - inset)
+        )
+
+        maskLayer.frame = bounds
+        maskLayer.path = fullPath
+        outlineLayer.frame = bounds
+        outlineLayer.path = outlinePath
+    }
+
+    private static func bottomRoundedPath(in bounds: CGRect, radius: CGFloat) -> CGPath {
+        let rect = bounds.standardized
+        let radius = max(0, min(radius, rect.width / 2, rect.height / 2))
+        let path = CGMutablePath()
+
+        guard radius > 0 else {
+            path.addRect(rect)
+            return path
+        }
+
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + radius))
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+            tangent2End: CGPoint(x: rect.maxX - radius, y: rect.minY),
+            radius: radius
+        )
+        path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.minY))
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX, y: rect.minY),
+            tangent2End: CGPoint(x: rect.minX, y: rect.minY + radius),
+            radius: radius
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+
+    private static func bottomOutlinePath(in bounds: CGRect, radius: CGFloat) -> CGPath {
+        let rect = bounds.standardized
+        let radius = max(0, min(radius, rect.width / 2, rect.height / 2))
+        let path = CGMutablePath()
+
+        guard radius > 0 else {
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            return path
+        }
+
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+        path.addArc(
+            tangent1End: CGPoint(x: rect.minX, y: rect.minY),
+            tangent2End: CGPoint(x: rect.minX + radius, y: rect.minY),
+            radius: radius
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
+        path.addArc(
+            tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+            tangent2End: CGPoint(x: rect.maxX, y: rect.minY + radius),
+            radius: radius
+        )
+        return path
+    }
+}
+
+struct DropdownDisplayGeometry {
+    let screenFrame: NSRect
+    let safeAreaInsets: NSEdgeInsets
+    let auxiliaryTopAreas: [NSRect]
+
+    init(screen: NSScreen) {
+        self.init(
+            screenFrame: screen.frame,
+            safeAreaInsets: screen.safeAreaInsets,
+            auxiliaryTopAreas: [screen.auxiliaryTopLeftArea, screen.auxiliaryTopRightArea].compactMap { $0 }
+        )
+    }
+
+    init(
+        screenFrame: NSRect,
+        safeAreaInsets: NSEdgeInsets = NSEdgeInsetsZero,
+        auxiliaryTopAreas: [NSRect] = []
+    ) {
+        self.screenFrame = screenFrame
+        self.safeAreaInsets = safeAreaInsets
+        self.auxiliaryTopAreas = auxiliaryTopAreas
+    }
+
+    var availableFrame: NSRect {
+        screenFrame
+    }
+
+    var contentInsets: NSEdgeInsets {
+        NSEdgeInsets(top: topUnsafeInset, left: 0, bottom: 0, right: 0)
+    }
+
+    private var topUnsafeInset: CGFloat {
+        max(0, safeAreaInsets.top, auxiliaryTopInset)
+    }
+
+    private var auxiliaryTopInset: CGFloat {
+        guard let lowestAuxiliaryTopY = auxiliaryTopAreas.map(\.minY).min() else {
+            return 0
+        }
+        return max(0, screenFrame.maxY - lowestAuxiliaryTopY)
+    }
+}
+
 /// Guake/iTerm2-style hotkey window: slides down from the top of the screen,
 /// joins every Space, keeps its sessions alive while hidden, auto-hides on
 /// focus loss unless pinned.
@@ -175,13 +361,15 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
     func show() {
         let panel = ensurePanel()
         let hk = SettingsStore.shared.settings.hotkey
-        let final = targetFrame()
+        let layout = targetLayout()
+        let final = layout.frame
         let start = final.offsetBy(dx: 0, dy: min(48, final.height * 0.12))
 
         panel.setFrame(start, display: false)
         panel.alphaValue = 0
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        applyContentInsets(layout.contentInsets)
         applyAppearance(to: panel)
         tabVC?.focusActiveSession()
 
@@ -232,7 +420,9 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
     /// Reframe (and restyle) live when settings change.
     func settingsDidChange() {
         guard let panel, panel.isVisible, !hiding else { return }
-        panel.setFrame(targetFrame(), display: true, animate: true)
+        let layout = targetLayout()
+        panel.setFrame(layout.frame, display: true, animate: true)
+        applyContentInsets(layout.contentInsets)
         applyAppearance(to: panel)
     }
 
@@ -250,8 +440,23 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         let scheme = profile.activeColorScheme
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        tabVC?.view.layer?.backgroundColor = NSColor(scheme.background).withAlphaComponent(opacity).cgColor
+        if let surface = tabVC?.view as? DropdownSurfaceView {
+            surface.configure(
+                fillColor: NSColor(scheme.background).withAlphaComponent(opacity),
+                outlineColor: NSColor.white.withAlphaComponent(0.28),
+                cornerRadius: preferredWindowCornerRadius(),
+                scale: panel.backingScaleFactor
+            )
+        } else {
+            tabVC?.view.layer?.backgroundColor = NSColor(scheme.background).withAlphaComponent(opacity).cgColor
+        }
         applyBlur(to: panel)
+    }
+
+    private func applyContentInsets(_ insets: NSEdgeInsets) {
+        tabVC?.view.additionalSafeAreaInsets = insets
+        updatePinButtonFrame(topInset: insets.top)
+        tabVC?.view.needsLayout = true
     }
 
     private func applyBlur(to panel: NSWindow) {
@@ -263,13 +468,18 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
 
     // MARK: Internals
 
-    private func targetFrame() -> NSRect {
+    private struct DropdownLayout {
+        let frame: NSRect
+        let contentInsets: NSEdgeInsets
+    }
+
+    private func targetLayout() -> DropdownLayout {
         let hk = SettingsStore.shared.settings.hotkey
         let screen = currentScreen()
-        // Anchor to the true top of the screen so the panel covers the macOS
-        // menu bar (the panel floats at .statusBar level, above the menu bar),
-        // matching iTerm2's hotkey window.
-        let sf = screen.frame
+        // Keep the classic top-of-screen hotkey-window placement. On notched
+        // displays, only the terminal content is inset below the unsafe strip.
+        let geometry = DropdownDisplayGeometry(screen: screen)
+        let sf = geometry.availableFrame
         let profile = dropdownProfile()
         let font = resolvedFont(name: profile.fontName, size: CGFloat(profile.fontSize))
         let cell = terminalCellSize(font: font)
@@ -277,7 +487,32 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         let requestedHeight = rows * cell.height + CGFloat(profile.padding) * 2
         let width = sf.width * min(max(hk.widthFraction, 0.2), 1.0)
         let height = min(max(requestedHeight, cell.height * 5), sf.height * 0.95)
-        return NSRect(x: sf.midX - width / 2, y: sf.maxY - height, width: width, height: height)
+        let frame = backingAligned(
+            NSRect(x: sf.midX - width / 2, y: sf.maxY - height, width: width, height: height),
+            for: screen
+        )
+        return DropdownLayout(
+            frame: frame,
+            contentInsets: geometry.contentInsets
+        )
+    }
+
+    private func backingAligned(_ rect: NSRect, for screen: NSScreen) -> NSRect {
+        let scale = max(screen.backingScaleFactor, 1)
+        func align(_ value: CGFloat) -> CGFloat {
+            (value * scale).rounded() / scale
+        }
+
+        let minX = align(rect.minX)
+        let maxX = align(rect.maxX)
+        let minY = align(rect.minY)
+        let maxY = align(rect.maxY)
+        return NSRect(
+            x: minX,
+            y: minY,
+            width: max(1 / scale, maxX - minX),
+            height: max(1 / scale, maxY - minY)
+        )
     }
 
     private func currentScreen() -> NSScreen {
@@ -298,7 +533,9 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         let hk = store.settings.hotkey
         let profile = store.profile(withID: hk.profileID) ?? store.defaultProfile
 
-        let vc = TerminalTabViewController(profile: profile, initialDirectory: nil)
+        let vc = TerminalTabViewController(profile: profile, initialDirectory: nil) {
+            DropdownSurfaceView(frame: NSRect(x: 0, y: 0, width: 900, height: 480))
+        }
         vc.onLastPaneClosed = { [weak self] in self?.teardown() }
 
         let panel = DropdownPanel(
@@ -311,22 +548,22 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.tabbingMode = .disallowed
         panel.delegate = self
         panel.contentViewController = vc
 
-        // Round only the bottom corners — the top edge hugs the menu bar.
-        vc.view.wantsLayer = true
-        vc.view.layer?.cornerRadius = preferredWindowCornerRadius()
-        vc.view.layer?.cornerCurve = .continuous
-        vc.view.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        vc.view.layer?.masksToBounds = true
-        vc.view.layer?.backgroundColor = NSColor(profile.activeColorScheme.background)
-            .withAlphaComponent(effectiveOpacity(for: profile))
-            .cgColor
+        if let surface = vc.view as? DropdownSurfaceView {
+            surface.configure(
+                fillColor: NSColor(profile.activeColorScheme.background)
+                    .withAlphaComponent(effectiveOpacity(for: profile)),
+                outlineColor: NSColor.white.withAlphaComponent(0.28),
+                cornerRadius: preferredWindowCornerRadius(),
+                scale: panel.backingScaleFactor
+            )
+        }
 
         let pin = NSButton(
             image: NSImage(systemSymbolName: "pin", accessibilityDescription: "Pin drop-down terminal") ?? NSImage(),
@@ -335,7 +572,7 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         )
         pin.isBordered = false
         pin.bezelStyle = .regularSquare
-        pin.frame = NSRect(x: vc.view.bounds.maxX - 30, y: vc.view.bounds.maxY - 28, width: 24, height: 22)
+        pin.frame = pinButtonFrame(topInset: 0)
         pin.autoresizingMask = [.minXMargin, .minYMargin]
         pin.toolTip = "Keep open when iGhostty loses focus"
         vc.view.addSubview(pin)
@@ -364,6 +601,22 @@ final class DropdownWindowController: NSObject, NSWindowDelegate {
         let name = pinned ? "pin.fill" : "pin"
         pinButton?.image = NSImage(systemSymbolName: name, accessibilityDescription: "Pin drop-down terminal")
         pinButton?.contentTintColor = pinned ? .controlAccentColor : .tertiaryLabelColor
+    }
+
+    private func updatePinButtonFrame(topInset: CGFloat) {
+        pinButton?.frame = pinButtonFrame(topInset: topInset)
+    }
+
+    private func pinButtonFrame(topInset: CGFloat) -> NSRect {
+        guard let view = tabVC?.view else {
+            return NSRect(x: 770, y: 472, width: 24, height: 22)
+        }
+        return NSRect(
+            x: view.bounds.maxX - 30,
+            y: view.bounds.maxY - 28 - max(0, topInset),
+            width: 24,
+            height: 22
+        )
     }
 
     func terminateAll() {

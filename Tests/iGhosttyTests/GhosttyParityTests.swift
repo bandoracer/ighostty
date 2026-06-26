@@ -188,6 +188,31 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertTrue(names.contains("Codex"))
     }
 
+    func testDropdownGeometryUsesFullFrameOnSquareDisplays() {
+        let frame = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let geometry = DropdownDisplayGeometry(screenFrame: frame)
+
+        XCTAssertEqual(geometry.availableFrame, frame)
+        XCTAssertEqual(geometry.contentInsets.top, 0)
+    }
+
+    func testDropdownGeometryKeepsFrameAndInsetsContentForNotch() {
+        let frame = NSRect(x: 0, y: 0, width: 1512, height: 982)
+        let geometry = DropdownDisplayGeometry(
+            screenFrame: frame,
+            safeAreaInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0),
+            auxiliaryTopAreas: [
+                NSRect(x: 0, y: 944, width: 700, height: 38),
+                NSRect(x: 812, y: 944, width: 700, height: 38),
+            ]
+        )
+
+        XCTAssertEqual(geometry.availableFrame, frame)
+        XCTAssertEqual(geometry.contentInsets.top, 38)
+        XCTAssertEqual(geometry.contentInsets.left, 0)
+        XCTAssertEqual(geometry.contentInsets.right, 0)
+    }
+
     private static var packageRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

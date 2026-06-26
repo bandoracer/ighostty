@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-06-26
+
 ### Fixed
 
+- The drop-down terminal now keeps its matching bottom-corner radius while
+  avoiding outline artifacts on rounded physical displays.
+- On notched displays, the drop-down terminal stays anchored to the full screen
+  and insets only its terminal content below the unsafe top area.
 - Release tooling now makes `make release` the notarized path and refuses to
   generate a Sparkle appcast for an unnotarized DMG.
 
@@ -106,7 +112,8 @@ Initial release.
 - Always-on background service with login-item support.
 - Built-in updates via Sparkle 2.
 
-[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.8...HEAD
+[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/bandoracer/ighostty/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/bandoracer/ighostty/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/bandoracer/ighostty/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/bandoracer/ighostty/compare/v1.0.5...v1.0.6
