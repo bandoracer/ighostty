@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import iGhostty
 
@@ -21,6 +22,20 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertEqual(parsed.entries.map(\.key), ["keybind", "keybind", "font-size"])
         XCTAssertEqual(parsed.entries.map(\.value), ["cmd+t=new_tab", "cmd+w=close_surface", "14"])
         XCTAssertEqual(parsed.issues.map(\.line), [5, 6, 7])
+    }
+
+    func testCommandRResetsTerminalLikeITerm() throws {
+        _ = NSApplication.shared
+        let menu = MainMenuBuilder.build(delegate: AppDelegate())
+        let sessionMenu = try XCTUnwrap(menu.item(withTitle: "Session")?.submenu)
+        let resetItem = try XCTUnwrap(sessionMenu.item(withTitle: "Reset Terminal"))
+
+        XCTAssertEqual(resetItem.action, #selector(AppDelegate.resetTerminal(_:)))
+        XCTAssertEqual(resetItem.keyEquivalent, "r")
+        XCTAssertEqual(resetItem.keyEquivalentModifierMask.intersection([.command, .option, .control, .shift]), [.command])
+
+        let source = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/AppDelegate.swift"))
+        XCTAssertTrue(source.contains("performGhosttyAction(\"reset\")"))
     }
 
     func testGhosttyResourcesValidateFromSourceTree() {

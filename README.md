@@ -234,6 +234,7 @@ after the final signed or notarized DMG is built.
 | Find / next / previous / use selection | `Cmd-F` / `Cmd-G` / `Shift-Cmd-G` / `Cmd-E` |
 | Previous / next prompt | `Cmd-Up` / `Cmd-Down` |
 | Clear buffer | `Cmd-K` |
+| Reset terminal emulator state | `Cmd-R` |
 | Scroll to top / end | `Cmd-Home` / `Cmd-End` |
 | Font bigger / smaller / reset | `Cmd-+` / `Cmd--` / `Cmd-0` |
 | Use transparency | `Cmd-U` |

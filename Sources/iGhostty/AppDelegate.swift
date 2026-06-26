@@ -532,6 +532,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         keyTabViewController()?.activeSession?.restart()
     }
 
+    /// ⌘R — reset terminal emulator state, matching iTerm2's default.
+    @objc func resetTerminal(_ sender: Any?) {
+        keyTabViewController()?.activeSession?.performGhosttyAction("reset")
+    }
+
     @objc func jumpToPreviousPrompt(_ sender: Any?) {
         keyTabViewController()?.activeSession?.performGhosttyAction("jump_to_prompt:-1")
     }
@@ -731,6 +736,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
              #selector(biggerText(_:)), #selector(smallerText(_:)),
              #selector(resetTextSize(_:)), #selector(selectPane(_:)),
              #selector(editSession(_:)), #selector(scrollToTop(_:)), #selector(scrollToEnd(_:)),
+             #selector(resetTerminal(_:)),
              #selector(jumpToPreviousPrompt(_:)), #selector(jumpToNextPrompt(_:)):
             return keyTabViewController() != nil
         case #selector(toggleSecureKeyboardEntry(_:)):

@@ -336,6 +336,7 @@ extension AppDelegate {
         case "f": return 3
         case "n": return 45
         case "q": return 12
+        case "r": return 15
         case "t": return 17
         case "v": return 9
         case "w": return 13

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-06-25
+
+### Added
+
+- `Cmd-R` now resets the active terminal emulator state, matching iTerm2's
+  default reset shortcut.
+
 ## [1.0.6] - 2026-06-24
 
 ### Fixed
@@ -87,7 +94,8 @@ Initial release.
 - Always-on background service with login-item support.
 - Built-in updates via Sparkle 2.
 
-[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/bandoracer/ighostty/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/bandoracer/ighostty/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/bandoracer/ighostty/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/bandoracer/ighostty/compare/v1.0.3...v1.0.4

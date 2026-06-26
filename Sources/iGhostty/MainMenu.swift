@@ -127,6 +127,7 @@ enum MainMenuBuilder {
         let broadcast = session.addItem(withTitle: "Broadcast Input to All Panes in Tab", action: #selector(AppDelegate.toggleBroadcastInput(_:)), keyEquivalent: "i")
         broadcast.keyEquivalentModifierMask = [.command, .option]
         session.addItem(.separator())
+        session.addItem(withTitle: "Reset Terminal", action: #selector(AppDelegate.resetTerminal(_:)), keyEquivalent: "r")
         session.addItem(withTitle: "Restart Session", action: #selector(AppDelegate.restartSession(_:)), keyEquivalent: "")
         session.addItem(.separator())
         let previousPrompt = session.addItem(withTitle: "Jump to Previous Prompt", action: #selector(AppDelegate.jumpToPreviousPrompt(_:)), keyEquivalent: String(UnicodeScalar(NSUpArrowFunctionKey)!))
