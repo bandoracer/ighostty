@@ -37,8 +37,14 @@ final class GhosttyParityTests: XCTestCase {
         let appDelegate = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/AppDelegate.swift"))
         let terminalSession = try String(contentsOf: Self.packageRoot.appendingPathComponent("Sources/iGhostty/TerminalSessionView.swift"))
         XCTAssertTrue(appDelegate.contains("resetTerminalState()"))
-        XCTAssertTrue(terminalSession.contains("performBindingAction(\"reset\")"))
-        XCTAssertTrue(terminalSession.contains("Data([0x0c])"))
+        let resetBody = try XCTUnwrap(terminalSession.range(of: "func resetTerminalState()")
+            .flatMap { start in
+                terminalSession[start.lowerBound...].range(of: "\n    func setDesaturated")
+                    .map { terminalSession[start.lowerBound..<$0.lowerBound] }
+            })
+        XCTAssertTrue(resetBody.contains("performBindingAction(\"reset\")"))
+        XCTAssertTrue(resetBody.contains("performBindingAction(\"clear_screen\")"))
+        XCTAssertFalse(resetBody.contains("Data([0x0c])"))
     }
 
     func testGhosttyResourcesValidateFromSourceTree() {
