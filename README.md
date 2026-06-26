@@ -175,14 +175,16 @@ non-goals — lives in [`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md).
 ```sh
 make app      # builds dist/iGhostty.app (release) with generated icon
 make dmg      # builds dist/iGhostty-<version>.dmg with app + Applications shortcut
-make appcast  # builds dist/appcast.xml for Sparkle/GitHub Releases
+make release  # notarizes/staples the DMG and builds Sparkle/GitHub assets
+make appcast  # builds dist/appcast.xml from an already-notarized DMG
 make run      # build + open
 swift build   # debug build through SwiftPM
 swift test    # focused Ghostty parity unit tests
 ```
 
 Release builds require a dated `CHANGELOG.md` section for the version in
-`Support/Info.plist`; `make appcast` fails if the release notes are missing.
+`Support/Info.plist`; `make appcast` fails if the release notes are missing or
+the DMG is not notarized and stapled.
 See [`docs/RELEASING.md`](docs/RELEASING.md) for the full publish procedure.
 
 Requires Xcode's Swift toolchain (Swift 5.9+ / macOS 13+). Dependencies resolve
@@ -194,13 +196,14 @@ through SwiftPM; the terminal surface comes from
 Download the latest `iGhostty-<version>.dmg` from GitHub Releases, open it, and
 drag `iGhostty.app` to `Applications`.
 
-Local release builds are signed with the available Apple Development identity
-when present. They are not Developer ID notarized unless you build with a
-Developer ID Application certificate and submit the DMG for notarization.
+Published releases are Developer ID signed, notarized, stapled, and checked with
+Gatekeeper before their Sparkle appcast is generated. Local ad-hoc builds may
+still be unsigned or unnotarized.
 
-**First launch (Gatekeeper).** If a build is signed but not notarized, macOS may
-refuse to open it the first time. Right-click (or Control-click) `iGhostty.app`
-and choose **Open**, then confirm — or clear the quarantine flag manually:
+**First launch (local builds).** If you build locally without notarization,
+macOS may refuse to open it the first time. Right-click (or Control-click)
+`iGhostty.app` and choose **Open**, then confirm — or clear the quarantine flag
+manually:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/iGhostty.app
@@ -214,8 +217,7 @@ https://github.com/bandoracer/ighostty/releases/latest/download/appcast.xml
 
 The Sparkle public EdDSA key is embedded in `Support/Info.plist`; the matching
 private key is stored in the local Keychain under account `dev.ighostty.app`.
-Use `make sparkle-key-help` for key export/import commands and `make appcast`
-after the final signed or notarized DMG is built.
+Use `make sparkle-key-help` for key export/import commands.
 
 ## Keyboard shortcuts
 

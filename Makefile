@@ -9,10 +9,10 @@ app:
 dmg:
 	bash scripts/make_dmg.sh
 
-appcast: dmg
+appcast:
 	bash scripts/make_appcast.sh
 
-release: appcast
+release: release-notarized
 
 notarize:
 	bash scripts/notarize_dmg.sh

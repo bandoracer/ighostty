@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Release tooling now makes `make release` the notarized path and refuses to
+  generate a Sparkle appcast for an unnotarized DMG.
+
 ## [1.0.8] - 2026-06-25
 
 ### Changed

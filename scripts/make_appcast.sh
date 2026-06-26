@@ -12,18 +12,40 @@ ACCOUNT="${SPARKLE_KEY_ACCOUNT:-dev.ighostty.app}"
 DOWNLOAD_PREFIX="${SPARKLE_DOWNLOAD_URL_PREFIX:-https://github.com/bandoracer/ighostty/releases/download/v${VERSION}/}"
 MAXIMUM_VERSIONS="${SPARKLE_MAXIMUM_VERSIONS:-1}"
 MAXIMUM_DELTAS="${SPARKLE_MAXIMUM_DELTAS:-1}"
+ALLOW_UNNOTARIZED="${IGHOSTTY_ALLOW_UNNOTARIZED_APPCAST:-0}"
 case "$DOWNLOAD_PREFIX" in
   */) ;;
   *) DOWNLOAD_PREFIX="${DOWNLOAD_PREFIX}/" ;;
 esac
 
 if [ ! -f "$DMG" ]; then
-  echo "error: $DMG does not exist. Run 'make dmg' or 'make release-notarized' first." >&2
+  echo "error: $DMG does not exist. Run 'make release' first." >&2
   exit 1
 fi
 if [ ! -x "$TOOLS_DIR/generate_appcast" ]; then
   echo "error: Sparkle generate_appcast not found. Run 'swift package resolve' first." >&2
   exit 1
+fi
+if [ "$ALLOW_UNNOTARIZED" != "1" ]; then
+  if ! assess_output=$(spctl -a -vvv -t open --context context:primary-signature "$DMG" 2>&1); then
+    echo "error: $DMG is not accepted by Gatekeeper." >&2
+    echo "$assess_output" >&2
+    echo "Run 'make release' so the DMG is notarized and stapled before generating the appcast." >&2
+    exit 1
+  fi
+  if [[ "$assess_output" != *"source=Notarized Developer ID"* ]]; then
+    echo "error: $DMG is accepted, but not as a notarized Developer ID artifact." >&2
+    echo "$assess_output" >&2
+    echo "Run 'make release' so the DMG is notarized and stapled before generating the appcast." >&2
+    exit 1
+  fi
+  if ! xcrun stapler validate "$DMG" >/dev/null 2>&1; then
+    echo "error: $DMG does not have a valid stapled notarization ticket." >&2
+    echo "Run 'make release' so the DMG is notarized and stapled before generating the appcast." >&2
+    exit 1
+  fi
+else
+  echo "warning: allowing unnotarized appcast generation because IGHOSTTY_ALLOW_UNNOTARIZED_APPCAST=1" >&2
 fi
 
 mkdir -p "$UPDATES_DIR"
