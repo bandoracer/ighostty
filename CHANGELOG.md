@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-07-16
+
+### Added
+
+- Profiles now have an easy Full/Legacy color compatibility control. Full mode
+  advertises `xterm-ghostty`; Legacy mode advertises `xterm-256color` while
+  retaining `COLORTERM=truecolor` for true-color-aware tools.
+
+### Changed
+
+- Sparkle has been updated to 2.9.4.
+- CI now builds and verifies the packaged application bundle in addition to the
+  SwiftPM build and unit tests.
+
+### Fixed
+
+- Release bundles now include complete third-party license texts, upstream
+  modification notices, and every document referenced by the packaged README.
+- Layered icon assets now use the app's macOS 13 deployment target, while older
+  Xcode versions fall back to the checked-in `.icns` icon. Packaging no longer
+  rewrites that tracked fallback as a build side effect.
+
 ## [1.0.10] - 2026-06-26
 
 ### Fixed
@@ -119,7 +141,8 @@ Initial release.
 - Always-on background service with login-item support.
 - Built-in updates via Sparkle 2.
 
-[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.10...HEAD
+[Unreleased]: https://github.com/bandoracer/ighostty/compare/v1.0.11...HEAD
+[1.0.11]: https://github.com/bandoracer/ighostty/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/bandoracer/ighostty/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/bandoracer/ighostty/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/bandoracer/ighostty/compare/v1.0.7...v1.0.8

@@ -40,6 +40,10 @@ make app         # builds dist/iGhostty.app (release)
 make run         # build + open
 ```
 
+Xcode 26 or newer rebuilds the layered app icon. Older Xcode versions package
+the checked-in `Support/AppIcon.icns` fallback, so the app bundle remains
+buildable with the Swift 5.9 toolchain documented above.
+
 Other useful targets: `make dmg`, `make appcast`, `make icon`, `make clean`.
 See the [Makefile](Makefile) and the README's *Build & run* section for details.
 

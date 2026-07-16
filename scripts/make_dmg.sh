@@ -19,6 +19,16 @@ ln -s /Applications "$DMG_ROOT/Applications"
 [ -f LICENSE ] && cp LICENSE "$DMG_ROOT/LICENSE"
 [ -f THIRD_PARTY_NOTICES.md ] && cp THIRD_PARTY_NOTICES.md "$DMG_ROOT/THIRD_PARTY_NOTICES.md"
 [ -f GHOSTTY_PARITY.md ] && cp GHOSTTY_PARITY.md "$DMG_ROOT/GHOSTTY_PARITY.md"
+[ -f CONTRIBUTING.md ] && cp CONTRIBUTING.md "$DMG_ROOT/CONTRIBUTING.md"
+[ -f SECURITY.md ] && cp SECURITY.md "$DMG_ROOT/SECURITY.md"
+[ -f CHANGELOG.md ] && cp CHANGELOG.md "$DMG_ROOT/CHANGELOG.md"
+if [ -f docs/RELEASING.md ]; then
+  mkdir -p "$DMG_ROOT/docs"
+  cp docs/RELEASING.md "$DMG_ROOT/docs/RELEASING.md"
+fi
+if [ -d LICENSES ]; then
+  cp -R LICENSES "$DMG_ROOT/LICENSES"
+fi
 
 hdiutil create \
   -volname "iGhostty" \

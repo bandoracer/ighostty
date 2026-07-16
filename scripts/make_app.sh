@@ -20,11 +20,17 @@ else
 fi
 
 ICON_COMPOSER_SOURCE="Support/AppIcon.icon"
-if [ -d "$ICON_COMPOSER_SOURCE" ]; then
+XCODE_MAJOR=0
+if command -v xcodebuild >/dev/null 2>&1; then
+  XCODE_MAJOR=$(xcodebuild -version 2>/dev/null | awk 'NR == 1 { split($2, parts, "."); print parts[1] }')
+fi
+
+if [ -d "$ICON_COMPOSER_SOURCE" ] && [ "${XCODE_MAJOR:-0}" -ge 26 ]; then
   ICON_WORK="$(mktemp -d)"
   NORMALIZED_ICON="$ICON_WORK/AppIcon.icon"
   ICON_BUILD="$ICON_WORK/build"
   ICON_INFO="$ICON_WORK/icon-info.plist"
+  DEPLOYMENT_TARGET=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Support/Info.plist)
   mkdir -p "$ICON_BUILD"
 
   swift scripts/normalize_icon_composer.swift "$ICON_COMPOSER_SOURCE" "$NORMALIZED_ICON"
@@ -38,22 +44,37 @@ if [ -d "$ICON_COMPOSER_SOURCE" ]; then
     --enable-on-demand-resources NO \
     --development-region en \
     --target-device mac \
-    --minimum-deployment-target 26.0 \
+    --minimum-deployment-target "$DEPLOYMENT_TARGET" \
     --platform macosx \
     --skip-app-store-deployment
 
   cp "$ICON_BUILD/Assets.car" "$APP/Contents/Resources/Assets.car"
-  cp "$ICON_BUILD/AppIcon.icns" Support/AppIcon.icns
-elif [ ! -f Support/AppIcon.icns ]; then
-  ICONSET="$(mktemp -d)/AppIcon.iconset"
-  swift scripts/gen_icon.swift "$ICONSET"
-  iconutil -c icns "$ICONSET" -o Support/AppIcon.icns
+  cp "$ICON_BUILD/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+else
+  if [ -d "$ICON_COMPOSER_SOURCE" ]; then
+    echo "note: Xcode 26+ is required to rebuild the layered icon; using Support/AppIcon.icns"
+  fi
+  if [ ! -f Support/AppIcon.icns ]; then
+    ICONSET="$(mktemp -d)/AppIcon.iconset"
+    swift scripts/gen_icon.swift "$ICONSET"
+    iconutil -c icns "$ICONSET" -o Support/AppIcon.icns
+  fi
+  cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 fi
-cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 [ -f README.md ] && cp README.md "$APP/Contents/Resources/README.md"
 [ -f LICENSE ] && cp LICENSE "$APP/Contents/Resources/LICENSE"
 [ -f THIRD_PARTY_NOTICES.md ] && cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 [ -f GHOSTTY_PARITY.md ] && cp GHOSTTY_PARITY.md "$APP/Contents/Resources/GHOSTTY_PARITY.md"
+[ -f CONTRIBUTING.md ] && cp CONTRIBUTING.md "$APP/Contents/Resources/CONTRIBUTING.md"
+[ -f SECURITY.md ] && cp SECURITY.md "$APP/Contents/Resources/SECURITY.md"
+[ -f CHANGELOG.md ] && cp CHANGELOG.md "$APP/Contents/Resources/CHANGELOG.md"
+if [ -f docs/RELEASING.md ]; then
+  mkdir -p "$APP/Contents/Resources/docs"
+  cp docs/RELEASING.md "$APP/Contents/Resources/docs/RELEASING.md"
+fi
+if [ -d LICENSES ]; then
+  cp -R LICENSES "$APP/Contents/Resources/LICENSES"
+fi
 if [ -d Support/GhosttyResources ]; then
   cp -R Support/GhosttyResources "$APP/Contents/Resources/GhosttyResources"
   chmod +x "$APP/Contents/Resources/GhosttyResources/bin/ghostty"

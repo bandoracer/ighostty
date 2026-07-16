@@ -1,7 +1,9 @@
 # Third-Party Notices
 
-iGhostty depends on Swift Package Manager packages and prebuilt binary artifacts
-that are distributed separately from this repository.
+iGhostty depends on Swift Package Manager packages and redistributes prebuilt
+binary artifacts and selected upstream runtime resources. Complete license
+texts that are required alongside the distribution live under `LICENSES/` and
+are copied into the application bundle and release DMG.
 
 ## Components
 
@@ -39,8 +41,8 @@ Repository: https://github.com/ghostty-org/ghostty
 
 iGhostty bundles a snapshot of Ghostty shell integration resources, terminfo
 source, compiled local terminfo entries, and a small `ghostty` command shim under
-`Support/GhosttyResources`. The upstream snapshot is recorded in
-`Support/GhosttyResources/UPSTREAM.txt`.
+`Support/GhosttyResources`. The upstream snapshot and the locally modified
+files are recorded in `Support/GhosttyResources/UPSTREAM.txt`.
 
 License: MIT, except where preserved file headers say otherwise.
 
@@ -48,20 +50,35 @@ License: MIT, except where preserved file headers say otherwise.
 Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors
 ```
 
-The zsh and bash Ghostty shell integration files preserve upstream GPLv3 headers
-because those portions are based on Kitty shell integration:
+The following Ghostty shell integration files preserve upstream GPLv3-or-later
+headers because those portions are based on Kitty shell integration:
 
 ```text
 Support/GhosttyResources/share/ghostty/shell-integration/zsh/ghostty-integration
+Support/GhosttyResources/share/ghostty/shell-integration/zsh/.zshenv
 Support/GhosttyResources/share/ghostty/shell-integration/bash/ghostty.bash
 ```
 
 Those files are distributed under the GNU General Public License version 3 or
-later, as stated in their headers. The GPL text is available from the Free
-Software Foundation at https://www.gnu.org/licenses/gpl-3.0.txt.
+later, as stated in their headers. A complete copy is included at
+`LICENSES/GPL-3.0.txt`. The zsh integration and `ghostty.bash` contain local
+changes made on 2026-06-15; their file headers and
+`Support/GhosttyResources/UPSTREAM.txt` describe those changes.
+
+### bash-preexec
+
+Repository: https://github.com/rcaloras/bash-preexec
 
 The bundled `bash-preexec.sh` file is copied from Ghostty's shell integration
-tree and retains its upstream attribution header.
+tree and originates from the bash-preexec project.
+
+License: MIT
+
+```text
+Copyright (c) 2017 Ryan Caloras and contributors
+```
+
+The complete license is included at `LICENSES/bash-preexec-MIT.txt`.
 
 ### MSDisplayLink
 
@@ -84,14 +101,17 @@ iGhostty embeds Sparkle 2 for built-in macOS update checking and installation.
 Sparkle is distributed as a binary Swift Package artifact and includes helper
 tools for signing update archives and generating appcasts.
 
-License: MIT/BSD-style licenses; see Sparkle's bundled `LICENSE` for the full
-third-party license text included with its distribution.
+License: MIT/BSD-style licenses. Sparkle's complete license and external
+third-party notices are included at `LICENSES/Sparkle.txt`.
 
 ```text
 Copyright (c) 2006-2013 Andy Matuschak.
 Copyright (c) 2009-2013 Elgato Systems GmbH.
 Copyright (c) 2011-2014 Kornel Lesiński.
 Copyright (c) 2015-2017 Mayur Pawashe.
+Copyright (c) 2014 C.W. Betts.
+Copyright (c) 2014 Petroules Corporation.
+Copyright (c) 2014 Big Nerd Ranch.
 ```
 
 ## MIT License Text

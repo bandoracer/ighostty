@@ -1,3 +1,8 @@
+# Modified by the iGhostty project on 2026-06-15 to make semantic prompt
+# marks opt-in and to avoid clearing the active prompt row during native
+# tab and resize transitions. The upstream source revision is recorded in
+# Support/GhosttyResources/UPSTREAM.txt.
+#
 # Parts of this script are based on Kitty's bash integration. Kitty is
 # distributed under GPLv3, so this file is also distributed under GPLv3.
 # The license header is reproduced below:

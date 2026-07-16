@@ -34,3 +34,22 @@ jobs:
 
       - name: Test
         run: swift test
+
+      - name: Package app bundle
+        run: make app
+
+      - name: Verify packaged app and public documents
+        run: |
+          deployment_target=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Support/Info.plist)
+          asset_target=$(xcrun assetutil --info dist/iGhostty.app/Contents/Resources/Assets.car | plutil -extract 0.PlatformVersion raw -o - -)
+          codesign --verify --deep --strict --verbose=2 dist/iGhostty.app
+          test -f dist/iGhostty.app/Contents/Resources/README.md
+          test -f dist/iGhostty.app/Contents/Resources/CONTRIBUTING.md
+          test -f dist/iGhostty.app/Contents/Resources/SECURITY.md
+          test -f dist/iGhostty.app/Contents/Resources/CHANGELOG.md
+          test -f dist/iGhostty.app/Contents/Resources/docs/RELEASING.md
+          test -f dist/iGhostty.app/Contents/Resources/LICENSES/GPL-3.0.txt
+          test -f dist/iGhostty.app/Contents/Resources/LICENSES/Sparkle.txt
+          test -f dist/iGhostty.app/Contents/Resources/LICENSES/bash-preexec-MIT.txt
+          test "$asset_target" = "$deployment_target"
+          git diff --exit-code -- Support/AppIcon.icns

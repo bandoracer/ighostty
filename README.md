@@ -58,9 +58,10 @@ everything around it.
 - **Ghostty runtime resources** - the app bundle includes Ghostty shell
   integration scripts, `xterm-ghostty` terminfo source and compiled entries,
   and a `ghostty` shim on `GHOSTTY_BIN_DIR`.
-- **Ghostty-compatible PTY environment** - new sessions default to
-  `TERM=xterm-ghostty` and export `GHOSTTY_RESOURCES_DIR`, `GHOSTTY_BIN_DIR`,
-  `TERMINFO`, `COLORTERM`, `TERM_PROGRAM`, and `TERM_PROGRAM_VERSION`.
+- **Ghostty-compatible PTY environment** - profiles offer Full color mode with
+  `TERM=xterm-ghostty`, or Legacy mode with `TERM=xterm-256color` plus
+  `COLORTERM=truecolor`. Sessions also export `GHOSTTY_RESOURCES_DIR`,
+  `GHOSTTY_BIN_DIR`, `TERMINFO`, `TERM_PROGRAM`, and `TERM_PROGRAM_VERSION`.
 - **Shell integration controls** - profiles can detect the shell, disable
   integration, or force a supported shell mode, with editable Ghostty
   `shell-integration-features`. The `cursor` feature follows the profile's
@@ -187,8 +188,10 @@ Release builds require a dated `CHANGELOG.md` section for the version in
 the DMG is not notarized and stapled.
 See [`docs/RELEASING.md`](docs/RELEASING.md) for the full publish procedure.
 
-Requires Xcode's Swift toolchain (Swift 5.9+ / macOS 13+). Dependencies resolve
-through SwiftPM; the terminal surface comes from
+Requires Xcode's Swift toolchain (Swift 5.9+ / macOS 13+). Xcode 26 or newer
+rebuilds the layered app icon; older Xcode versions use the checked-in
+`Support/AppIcon.icns` fallback. Dependencies resolve through SwiftPM; the
+terminal surface comes from
 [`libghostty-spm`](https://github.com/Lakr233/libghostty-spm).
 
 ## Download & install

@@ -91,7 +91,12 @@ enum ITermImport {
         if let mouse = bool(d, "Mouse Reporting") { p.mouseReporting = mouse }
         if let silence = bool(d, "Silence Bell") { p.audibleBell = !silence }
         if let visual = bool(d, "Visual Bell") { p.visualBell = visual }
-        if let term = string(d, "Terminal Type") { p.termVariable = term }
+        if let term = string(d, "Terminal Type") {
+            p.termVariable = term
+            if term.trimmingCharacters(in: .whitespacesAndNewlines) == TerminalTerm.legacyDefault {
+                p.colorMode = .legacy
+            }
+        }
         if let close = bool(d, "Close Sessions On End") {
             p.closeOnExit = close ? .always : .never
         }

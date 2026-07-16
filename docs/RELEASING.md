@@ -67,6 +67,20 @@ come from `CHANGELOG.md`.
    xcrun stapler validate dist/iGhostty-<version>.dmg
    ```
 
+   Also inspect the packaged public documentation and license payload before
+   publishing:
+
+   ```sh
+   find dist/iGhostty.app/Contents/Resources/LICENSES -type f -print
+   test -f dist/iGhostty.app/Contents/Resources/SECURITY.md
+   test -f dist/iGhostty.app/Contents/Resources/docs/RELEASING.md
+   xcrun assetutil --info dist/iGhostty.app/Contents/Resources/Assets.car
+   ```
+
+   The license directory should contain the GPL, Sparkle, and bash-preexec
+   texts. When `Assets.car` is present, its `PlatformVersion` should match
+   `LSMinimumSystemVersion` in `Support/Info.plist`.
+
 4. Commit the version/changelog/procedure changes and tag the release:
 
    ```sh

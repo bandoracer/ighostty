@@ -1,3 +1,7 @@
+# Modified by the iGhostty project on 2026-06-15 to make semantic prompt
+# marks opt-in. The upstream source revision is recorded in
+# Support/GhosttyResources/UPSTREAM.txt.
+#
 # This shell script aims to be written in a way where it can't really fail
 # or all failure scenarios are handled, so that we never leave the shell in
 # a weird state. If you find a way to break this, please report a bug!

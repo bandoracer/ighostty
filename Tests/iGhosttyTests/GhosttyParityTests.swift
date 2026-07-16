@@ -78,6 +78,45 @@ final class GhosttyParityTests: XCTestCase {
         XCTAssertNotNil(env["TERMINFO"])
     }
 
+    func testLegacyColorModeAdvertises256ColorAndRetainsTruecolor() {
+        var profile = Profile()
+        profile.colorMode = .legacy
+        profile.termVariable = "screen-256color"
+        profile.shellIntegration = .none
+
+        var env: [String: String] = [:]
+        _ = GhosttyShellIntegration.configure(
+            shellPath: "/bin/zsh",
+            args: [],
+            loginShellName: "-zsh",
+            profile: profile,
+            environment: &env
+        )
+
+        XCTAssertEqual(profile.effectiveTermVariable, "xterm-256color")
+        XCTAssertEqual(env["TERM"], "xterm-256color")
+        XCTAssertEqual(env["COLORTERM"], "truecolor")
+    }
+
+    func testLegacyProfileDecodeDefaultsColorModeToFull() throws {
+        let data = try JSONEncoder().encode(Profile())
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "colorMode")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+        let decoded = try JSONDecoder().decode(Profile.self, from: legacyData)
+
+        XCTAssertEqual(decoded.colorMode, .full)
+        XCTAssertEqual(decoded.effectiveTermVariable, "xterm-ghostty")
+    }
+
+    func testITerm256ColorProfileImportsInLegacyMode() {
+        let profile = ITermImport.profile(from: ["Name": "Legacy", "Terminal Type": "xterm-256color"])
+
+        XCTAssertEqual(profile.colorMode, .legacy)
+        XCTAssertEqual(profile.effectiveTermVariable, "xterm-256color")
+    }
+
     func testSettingsMigrationMovesLegacyTermDefaultToGhostty() {
         var settings = AppSettings.freshDefault()
         settings.profiles[0].termVariable = "xterm-256color"

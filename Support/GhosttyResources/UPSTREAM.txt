@@ -1,3 +1,11 @@
 Upstream Ghostty resources snapshot
 commit=fdbf9ff3a31d7531b691cb49c98fc465a1a503a0
 date=2026-06-15T05:06:59Z
+
+Local modifications made 2026-06-15:
+- share/ghostty/shell-integration/zsh/ghostty-integration
+  Makes semantic prompt marks opt-in and avoids clearing the active prompt row.
+- share/ghostty/shell-integration/bash/ghostty.bash
+  Makes semantic prompt marks opt-in and avoids clearing the active prompt row.
+- share/ghostty/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish
+  Makes semantic prompt marks opt-in.

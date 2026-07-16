@@ -32,7 +32,7 @@ Ghostty documents it as tip/1.4.0-only.
 
 | Area | Status | iGhostty state |
 | --- | --- | --- |
-| `TERM=xterm-ghostty` | Shipped | New profiles default to `xterm-ghostty`; blank TERM falls back to it. |
+| Terminal color compatibility | Shipped | Full mode uses `TERM=xterm-ghostty`; per-profile Legacy mode uses `TERM=xterm-256color` with `COLORTERM=truecolor`. |
 | Bundled terminfo source | Shipped | `Support/GhosttyResources/share/terminfo/ghostty.terminfo`. |
 | Bundled compiled terminfo | Shipped | Local `67/ghostty` and `78/xterm-ghostty` entries copied into app bundle. |
 | Shell integration resources | Shipped | Ghostty zsh, bash, fish, elvish, and nushell integrations are bundled. |

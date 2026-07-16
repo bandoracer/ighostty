@@ -377,6 +377,20 @@ enum TerminalTerm {
     static let legacyDefault = "xterm-256color"
 }
 
+enum TerminalColorMode: String, Codable, CaseIterable, Identifiable {
+    case full
+    case legacy
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .full: return "Full"
+        case .legacy: return "Legacy"
+        }
+    }
+}
+
 struct Profile: Codable, Equatable, Hashable, Identifiable {
     var id = UUID()
     var name = "Default"
@@ -416,6 +430,7 @@ struct Profile: Codable, Equatable, Hashable, Identifiable {
     // Terminal behavior
     var scrollbackLines = 10_000
     var unlimitedScrollback = false
+    var colorMode: TerminalColorMode = .full
     var termVariable = TerminalTerm.ghostty
     var shellIntegration: ShellIntegrationMode = .detect
     /// Comma-separated Ghostty feature names. "cursor" follows cursorBlink.
@@ -440,6 +455,14 @@ struct Profile: Codable, Equatable, Hashable, Identifiable {
             if !key.isEmpty { out[key] = value }
         }
         return out
+    }
+
+    var effectiveTermVariable: String {
+        if colorMode == .legacy {
+            return TerminalTerm.legacyDefault
+        }
+        let configured = termVariable.trimmingCharacters(in: .whitespacesAndNewlines)
+        return configured.isEmpty ? TerminalTerm.ghostty : configured
     }
 }
 
@@ -480,6 +503,7 @@ extension Profile {
         rows = val(.rows, d.rows)
         scrollbackLines = val(.scrollbackLines, d.scrollbackLines)
         unlimitedScrollback = val(.unlimitedScrollback, d.unlimitedScrollback)
+        colorMode = val(.colorMode, d.colorMode)
         termVariable = val(.termVariable, d.termVariable)
         shellIntegration = val(.shellIntegration, d.shellIntegration)
         shellIntegrationFeatures = GhosttyShellIntegration.canonicalFeatureText(

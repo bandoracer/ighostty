@@ -500,6 +500,27 @@ private struct ProfileTerminalTab: View {
                 Toggle("Report mouse events to apps", isOn: $profile.mouseReporting)
             }
 
+            Section {
+                Picker("Color mode", selection: $profile.colorMode) {
+                    ForEach(TerminalColorMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                LabeledContent("Advertised TERM", value: profile.effectiveTermVariable)
+                    .foregroundStyle(.secondary)
+
+                if profile.colorMode == .full {
+                    TextField("Full-mode TERM", text: $profile.termVariable, prompt: Text("xterm-ghostty"))
+                }
+            } header: {
+                Text("Color Compatibility")
+            } footer: {
+                Text("Full advertises xterm-ghostty for complete terminal capability detection. Legacy advertises xterm-256color while retaining COLORTERM=truecolor for older tools. Changes apply to new sessions.")
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Shell Integration") {
                 Picker("Mode", selection: $profile.shellIntegration) {
                     ForEach(ShellIntegrationMode.allCases) { Text($0.label).tag($0) }
@@ -516,7 +537,6 @@ private struct ProfileTerminalTab: View {
             }
 
             Section("Session") {
-                TextField("TERM variable", text: $profile.termVariable, prompt: Text("xterm-ghostty"))
                 Picker("When the shell exits", selection: $profile.closeOnExit) {
                     ForEach(CloseOnExit.allCases) { Text($0.label).tag($0) }
                 }
