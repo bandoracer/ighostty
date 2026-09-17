@@ -8,7 +8,7 @@ let package = Package(
         .executable(name: "iGhostty", targets: ["iGhostty"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Lakr233/libghostty-spm.git", exact: "1.2.4"),
+        .package(url: "https://github.com/Lakr233/libghostty-spm.git", exact: "1.6.20260909"),
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.4"),
     ],
     targets: [
