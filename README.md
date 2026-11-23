@@ -21,6 +21,7 @@ everything around it.
 - [Compatibility](#compatibility)
   - [iTerm2 compatibility](#iterm2-compatibility)
   - [Ghostty features](#ghostty-features)
+- [How this is built](#how-this-is-built)
 - [Build & run](#build--run)
 - [Download & install](#download--install)
 - [Keyboard shortcuts](#keyboard-shortcuts)
@@ -170,6 +171,29 @@ top:
 
 The full, status-tracked matrix — including partials, planned work, and
 non-goals — lives in [`GHOSTTY_PARITY.md`](GHOSTTY_PARITY.md).
+
+## How this is built
+
+iGhostty is built with coding agents: Claude Code and Codex. The history
+records only part of that. As of v1.0.11, 4 of the 21 commits on `main` carry a
+Claude co-author trailer, and the repo has no agent guide.
+
+These checks keep that work honest:
+
+- [CI](https://github.com/bandoracer/ighostty/blob/main/.github/workflows/ci.yml) runs on every push and pull request to `main`:
+  build, tests, app packaging, and a check of the bundle's signature and
+  license files.
+- [17 unit tests](https://github.com/bandoracer/ighostty/blob/main/Tests/iGhosttyTests/GhosttyParityTests.swift) cover the
+  config override parser, shell integration environment, settings migration,
+  iTerm2 import, the theme catalog, and drop-down geometry.
+- [Releases](docs/RELEASING.md) are built locally, not in CI.
+  [`make appcast`](https://github.com/bandoracer/ighostty/blob/main/scripts/make_appcast.sh) fails unless the DMG is notarized
+  and stapled and `CHANGELOG.md` has notes for the version. There are 12
+  release tags, v1.0.0 through v1.0.11.
+
+Limits: no UI tests, CI does not drive the [automation hook](#testing-hook),
+and iTerm2 import has one unit test built on an inline dictionary, not a real
+plist.
 
 ## Build & run
 
